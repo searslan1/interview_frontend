@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 70% 98%;
+    --foreground: 220 10% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 10% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 10% 20%;
+
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 250 84% 62%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 220 15% 90%;
+    --muted-foreground: 220 10% 40%;
+
+    --accent: 167 68% 39%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 15% 90%;
+    --input: 220 15% 90%;
+    --ring: 221 83% 53%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 220 30% 10%;
+    --foreground: 220 10% 90%;
+
+    --card: 220 30% 15%;
+    --card-foreground: 220 10% 90%;
+
+    --popover: 220 30% 15%;
+    --popover-foreground: 220 10% 90%;
+
+    --primary: 221 83% 53%;
+    --primary-foreground: 220 10% 90%;
+
+    --secondary: 250 84% 62%;
+    --secondary-foreground: 220 10% 90%;
+
+    --muted: 220 30% 20%;
+    --muted-foreground: 220 10% 60%;
+
+    --accent: 167 68% 39%;
+    --accent-foreground: 220 10% 90%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 220 10% 90%;
+
+    --border: 220 30% 20%;
+    --input: 220 30% 20%;
+    --ring: 221 83% 53%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.hover-highlight:hover {
+  @apply border-primary ring-1 ring-primary;
+}
+
+.focus-highlight:focus {
+  @apply border-primary ring-1 ring-primary outline-none;
+}
+
+.bg-gradient-primary {
+  @apply bg-gradient-to-br from-blue-500 to-purple-600;
+}
+
+.text-gradient-primary {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600;
+}
+
+.btn-primary {
+  @apply bg-teal-500 hover:bg-teal-600 text-white transition-colors duration-300;
+}
+
+.btn-secondary {
+  @apply bg-white text-teal-500 hover:bg-gray-100 transition-colors duration-300;
+}
+
