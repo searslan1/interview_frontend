@@ -1,38 +1,32 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Star } from "lucide-react"
-import { useFavoriteCandidatesStore } from "@/store/favorite-candidates-store"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Star, Link, FileText } from "lucide-react";
+import { useFavoriteCandidatesStore } from "@/store/favorite-candidates-store";
+import type { Candidate } from "@/types/candidate";
 
 interface CandidateCardProps {
-  candidate: {
-    id: string
-    name: string
-    position: string
-    applicationDate: string
-    status: string
-    aiScore: number
-  }
+  candidate: Candidate;
 }
 
 export function CandidateCard({ candidate }: CandidateCardProps) {
-  const { addFavorite, removeFavorite, isFavorite } = useFavoriteCandidatesStore()
+  const { addFavorite, removeFavorite, isFavorite } = useFavoriteCandidatesStore();
 
   const toggleFavorite = () => {
     if (isFavorite(candidate.id)) {
-      removeFavorite(candidate.id)
+      removeFavorite(candidate.id);
     } else {
       addFavorite({
         id: candidate.id,
         name: candidate.name,
-        position: candidate.position,
-        score: candidate.aiScore,
-      })
+        position: candidate.appliedPosition,
+        score: candidate.interviews.length > 0 ? candidate.interviews[0].score : 0, // En son mülakat skoru
+      });
     }
-  }
+  };
 
   return (
     <Card>
@@ -46,12 +40,65 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
       <CardContent>
         <div className="grid gap-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm">{candidate.position}</span>
-            <Badge variant={candidate.status === "Olumlu" ? "success" : "secondary"}>{candidate.status}</Badge>
+            <span className="text-sm">{candidate.appliedPosition}</span>
+            <Badge
+              variant={candidate.interviews.length > 0 && candidate.interviews[0].score >= 70 ? "default" : "secondary"}
+            >
+              {candidate.interviews.length > 0
+                ? `Mülakat Skoru: ${candidate.interviews[0].score}`
+                : "Mülakat Yapılmadı"}
+            </Badge>
           </div>
-          <div className="text-xs text-muted-foreground">Başvuru: {candidate.applicationDate}</div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold">AI Skoru: {candidate.aiScore}</span>
+          <div className="text-xs text-muted-foreground">
+            Başvuru Tarihi: {candidate.createdAt ? new Date(candidate.createdAt).toLocaleDateString() : "Bilinmiyor"}
+          </div>
+
+          {/* 🔗 Sosyal Medya ve Özgeçmiş Bağlantıları */}
+          <div className="flex gap-2 mt-2">
+            {candidate.resumeUrl && (
+              <a
+                href={candidate.resumeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center text-xs text-blue-500 hover:underline"
+              >
+                <FileText className="w-4 h-4 mr-1" /> CV
+              </a>
+            )}
+            {candidate.linkedInProfile && (
+              <a
+                href={candidate.linkedInProfile}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center text-xs text-blue-500 hover:underline"
+              >
+                <Link className="w-4 h-4 mr-1" /> LinkedIn
+              </a>
+            )}
+            {candidate.github && (
+              <a
+                href={candidate.github}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center text-xs text-blue-500 hover:underline"
+              >
+                <Link className="w-4 h-4 mr-1" /> GitHub
+              </a>
+            )}
+            {candidate.portfolio && (
+              <a
+                href={candidate.portfolio}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center text-xs text-blue-500 hover:underline"
+              >
+                <Link className="w-4 h-4 mr-1" /> Portfolio
+              </a>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-sm font-semibold">AI Skoru: {candidate.interviews.length > 0 ? candidate.interviews[0].score : "N/A"}</span>
             <Button variant="ghost" size="sm" onClick={toggleFavorite}>
               <Star className={`h-4 w-4 ${isFavorite(candidate.id) ? "fill-yellow-400" : ""}`} />
             </Button>
@@ -59,6 +106,5 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
-

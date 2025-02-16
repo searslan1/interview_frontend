@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { useInterviewStore } from "@/store/interviewStore"
+import { useInterviewStore } from "@/store/interview-store"
 import { InterviewList } from "@/components/interview-list"
 import { FilterSection } from "@/components/filter-section"
 import { Header } from "@/components/header"
@@ -13,11 +13,11 @@ import { LoadingSpinner } from "@/components/LoadingSpinner"
 export default function InterviewsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [filters, setFilters] = useState({})
-  const { interviews, isLoading, error, fetchInterviews } = useInterviewStore()
+  const { interviews, isLoading, error, fetchAllInterviews } = useInterviewStore()
 
   useEffect(() => {
-    fetchInterviews()
-  }, [fetchInterviews])
+    fetchAllInterviews()
+  }, [fetchAllInterviews])
 
   const handleFilterChange = (newFilters: any) => {
     setFilters(newFilters)

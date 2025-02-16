@@ -1,56 +1,85 @@
-"use client"
+"use client";
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { QuestionSelector } from "@/components/question-selector";
+import { useInterviewStore } from "@/store/interview-store";
+import { useAuthStore } from "@/store/auth-store"; // Kullanıcı kimliği için
 
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { QuestionSelector } from "@/components/question-selector"
-
+// ✅ Schema güncellendi, interview tipine daha uygun hale getirildi.
 const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Mülakat adı en az 2 karakter olmalıdır.",
+  title: z.string().min(2, { message: "Mülakat adı en az 2 karakter olmalıdır." }),
+  description: z.string().min(10, { message: "Mülakat açıklaması en az 10 karakter olmalıdır." }),
+  expirationDate: z.date().refine((date) => date > new Date(), {
+    message: "Son başvuru tarihi geçmiş bir tarih olamaz.",
   }),
-  description: z.string().min(10, {
-    message: "Mülakat açıklaması en az 10 karakter olmalıdır.",
+  stages: z.object({
+    personalityTest: z.boolean().default(false),
+    questionnaire: z.boolean().default(true),
   }),
-  subject: z.string({
-    required_error: "Lütfen bir mülakat konusu seçin.",
-  }),
-  dateRange: z.object({
-    from: z.date(),
-    to: z.date(),
-  }),
-  hasPersonalityTest: z.boolean().default(false),
-  questions: z.array(z.string()).min(1, {
-    message: "En az bir soru seçmelisiniz.",
-  }),
-})
+  questions: z.array(
+    z.object({
+      id: z.string(),
+      questionText: z.string(),
+      expectedAnswer: z.string(),
+      order: z.number(),
+      duration: z.number(),
+      keywords: z.array(z.string()).optional(),
+      aiMetadata: z.object({
+        complexityLevel: z.enum(["low", "medium", "high"]),
+        requiredSkills: z.array(z.string()),
+      }),
+    })
+  ).min(1, { message: "En az bir soru seçmelisiniz." }),
+});
 
 export default function AddInterviewForm() {
+  const { createInterview } = useInterviewStore();
+  const { user } = useAuthStore(); // ✅ Kullanıcı kimliği için auth store
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
+      title: "",
       description: "",
-      hasPersonalityTest: false,
+      expirationDate: new Date(),
+      stages: { personalityTest: false, questionnaire: true },
       questions: [],
     },
-  })
+  });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values)
-    // Burada form verilerini API'ye gönderebilirsiniz
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user) {
+      alert("Giriş yapmalısınız.");
+      return;
+    }
+
+    const newInterview = {
+      ...values,
+      createdBy: { userId: user._id },
+      questions: values.questions.map((q) => ({
+        ...q,
+        keywords: q.keywords ?? [], // ✅ Varsayılan olarak boş array atanıyor
+      })),
+    };
+
+    try {
+      await createInterview(newInterview);
+      alert("Mülakat başarıyla oluşturuldu.");
+    } catch (error) {
+      console.error("Mülakat oluşturulurken hata:", error);
+      alert("Bir hata oluştu.");
+    }
   }
 
   return (
@@ -60,7 +89,7 @@ export default function AddInterviewForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <FormField
             control={form.control}
-            name="name"
+            name="title"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Mülakat Adı</FormLabel>
@@ -86,67 +115,21 @@ export default function AddInterviewForm() {
           />
           <FormField
             control={form.control}
-            name="subject"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Mülakat Konusu</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Mülakat konusu seçin" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="frontend">Frontend Geliştirici</SelectItem>
-                    <SelectItem value="backend">Backend Geliştirici</SelectItem>
-                    <SelectItem value="fullstack">Fullstack Geliştirici</SelectItem>
-                    <SelectItem value="devops">DevOps Mühendisi</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="dateRange"
+            name="expirationDate"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Başvuru Tarihi Aralığı</FormLabel>
+                <FormLabel>Son Başvuru Tarihi</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-[300px] justify-start text-left font-normal",
-                          !field.value && "text-muted-foreground",
-                        )}
-                      >
+                      <Button variant="outline" className={cn("w-[300px] justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value?.from ? (
-                          field.value.to ? (
-                            <>
-                              {format(field.value.from, "LLL dd, y")} - {format(field.value.to, "LLL dd, y")}
-                            </>
-                          ) : (
-                            format(field.value.from, "LLL dd, y")
-                          )
-                        ) : (
-                          <span>Tarih aralığı seçin</span>
-                        )}
+                        {field.value ? format(field.value, "LLL dd, y") : <span>Tarih seçin</span>}
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      initialFocus
-                      mode="range"
-                      defaultMonth={field.value?.from}
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      numberOfMonths={2}
-                    />
+                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
                   </PopoverContent>
                 </Popover>
                 <FormMessage />
@@ -155,7 +138,7 @@ export default function AddInterviewForm() {
           />
           <FormField
             control={form.control}
-            name="hasPersonalityTest"
+            name="stages.personalityTest"
             render={({ field }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                 <FormControl>
@@ -175,7 +158,10 @@ export default function AddInterviewForm() {
               <FormItem>
                 <FormLabel>Sorular</FormLabel>
                 <FormControl>
-                  <QuestionSelector selectedQuestions={field.value} onQuestionsChange={field.onChange} />
+                  <QuestionSelector
+                    selectedQuestions={form.watch("questions").map((q) => ({ ...q, keywords: q.keywords ?? [] }))}
+                    onQuestionsChange={(updatedQuestions) => form.setValue("questions", updatedQuestions)}
+                  />
                 </FormControl>
                 <FormDescription>Mülakat için sorular seçin.</FormDescription>
                 <FormMessage />
@@ -186,6 +172,5 @@ export default function AddInterviewForm() {
         </form>
       </Form>
     </div>
-  )
+  );
 }
-

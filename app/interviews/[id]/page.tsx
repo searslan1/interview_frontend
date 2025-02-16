@@ -1,36 +1,48 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
-import { useInterviewStore } from "@/store/interviewStore"
-import { InterviewDetails } from "@/components/interview/InterviewDetails"
-import { ApplicationList } from "@/components/interview/ApplicationList"
-import { LoadingSpinner } from "@/components/LoadingSpinner"
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { useInterviewStore } from "@/store/interview-store";
+import { InterviewDetails } from "@/components/interview/InterviewDetails";
+import { ApplicationList } from "@/components/interview/ApplicationList";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { useApplicationStore } from "@/store/application-store";
 
 export default function InterviewDetailPage() {
-  const { id } = useParams()
-  const { interviews, fetchInterviews, fetchApplications, getApplicationsWithInterviewDetails } = useInterviewStore()
-  const [isLoading, setIsLoading] = useState(true)
+  const params = useParams();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id; // ✅ ID'yi kesin string olarak al
+  const { interviews, fetchAllInterviews } = useInterviewStore();
+  const { fetchApplications, getApplicationsByInterviewId } = useApplicationStore();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
-      setIsLoading(true)
-      await Promise.all([fetchInterviews(), fetchApplications()])
-      setIsLoading(false)
-    }
-    loadData()
-  }, [fetchInterviews, fetchApplications])
+      setIsLoading(true);
+      await Promise.all([fetchAllInterviews(), fetchApplications()]);
+      setIsLoading(false);
+    };
+    loadData();
+  }, [fetchAllInterviews, fetchApplications]);
 
   if (isLoading) {
-    return <LoadingSpinner />
+    return <LoadingSpinner />;
   }
 
-  const interview = interviews.find((i) => i.id === id)
-  const applicationsWithDetails = getApplicationsWithInterviewDetails().filter((app) => app.interviewId === id)
-
+  const interview = interviews.find((i) => i.id === id);
   if (!interview) {
-    return <div>Mülakat bulunamadı.</div>
+    return <div>Mülakat bulunamadı.</div>;
   }
+
+  // ✅ Backend modeline uygun şekilde `Application` nesnelerini dönüştürüyoruz
+  const applicationsWithDetails = getApplicationsByInterviewId(id).map((app) => ({
+    id: app.id,
+    candidateName: `${app.candidate.name} ${app.candidate.surname}`, // ✅ Aday adı ekleniyor
+    email: app.candidate.email, // ✅ Eksik email eklendi
+    status: app.status,
+    submissionDate: new Date(app.submissionDate).toLocaleDateString(), // ✅ Tarih formatı güncellendi
+    aiScore: app.generalAIAnalysis?.overallScore ?? 0, // ✅ AI Skoru yoksa varsayılan 0
+    interviewTitle: interview.title, // ✅ Mülakat başlığı ekleniyor
+  }));
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -40,6 +52,5 @@ export default function InterviewDetailPage() {
         <ApplicationList applications={applicationsWithDetails} />
       </div>
     </div>
-  )
+  );
 }
-

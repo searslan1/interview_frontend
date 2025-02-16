@@ -1,15 +1,35 @@
-"use client"
+"use client";
 
+import { create } from "zustand";
 
-import { create } from "zustand"
-import { dashboardMockData } from "@/mockdata/dashboardData"
+interface ApplicationTrend {
+  date: string;
+  count: number;
+}
+
+interface DepartmentApplication {
+  department: string;
+  count: number;
+}
+
+interface CandidateProfile {
+  experience: string;
+  count: number;
+}
+
+interface FavoriteCandidate {
+  id: string;
+  name: string;
+  position: string;
+  score: number;
+}
 
 interface DashboardStore {
-  applicationTrends: { date: string; count: number }[]
-  departmentApplications: { department: string; count: number }[]
-  candidateProfiles: { experience: string; count: number }[]
-  favoriteCandidates: { id: number; name: string; position: string; score: number }[]
-  fetchDashboardData: () => Promise<void>
+  applicationTrends: ApplicationTrend[];
+  departmentApplications: DepartmentApplication[];
+  candidateProfiles: CandidateProfile[];
+  favoriteCandidates: FavoriteCandidate[];
+  fetchDashboardData: () => Promise<void>;
 }
 
 export const useDashboardStore = create<DashboardStore>((set) => ({
@@ -17,10 +37,29 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
   departmentApplications: [],
   candidateProfiles: [],
   favoriteCandidates: [],
-  fetchDashboardData: async () => {
-    // Simulating API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    set(dashboardMockData)
-  },
-}))
 
+  fetchDashboardData: async () => {
+    try {
+      const response = await fetch("/api/dashboard"); // ✅ Gerçek API'den veri çeker
+      if (!response.ok) {
+        throw new Error("Dashboard verileri yüklenemedi.");
+      }
+      const data = await response.json();
+
+      set({
+        applicationTrends: data.applicationTrends || [],
+        departmentApplications: data.departmentApplications || [],
+        candidateProfiles: data.candidateProfiles || [],
+        favoriteCandidates: data.favoriteCandidates || [],
+      });
+    } catch (error) {
+      console.error("Dashboard verileri alınırken hata oluştu:", error);
+      set({
+        applicationTrends: [],
+        departmentApplications: [],
+        candidateProfiles: [],
+        favoriteCandidates: [],
+      });
+    }
+  },
+}));

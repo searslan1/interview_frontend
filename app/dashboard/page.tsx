@@ -14,11 +14,11 @@ import { ChatAssistant } from "@/components/dashboard/ChatAssistant";
 import { FavoriteCandidates } from "@/components/dashboard/FavoriteCandidates";
 
 export default function DashboardPage() {
-  const { interviews, fetchInterviews, isLoading } = useInterviewStore();
+  const { interviews, fetchAllInterviews, isLoading } = useInterviewStore();
 
   useEffect(() => {
-    fetchInterviews();
-  }, []);
+    fetchAllInterviews();
+  }, [fetchAllInterviews]); // ✅ Bağımlılık eklendi.
 
   return (
     <div className="min-h-screen bg-background">
@@ -30,7 +30,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           {isLoading ? (
             <p>Yükleniyor...</p>
-          ) : interviews.length > 0 ? (
+          ) : interviews?.length > 0 ? ( // ✅ Opsiyonel chaining eklendi.
             <InterviewCard interview={interviews[0]} isFeatured={true} />
           ) : (
             <p>Henüz mülakat bulunmuyor.</p>
@@ -38,7 +38,7 @@ export default function DashboardPage() {
           <InterviewCalendar />
         </div>
 
-        <InterviewSlider />
+        {interviews?.length > 0 && <InterviewSlider />} {/* ✅ Slider sadece veri varsa gösterilecek */}
         <ApplicationSlider />
         <DashboardCharts />
         <FavoriteCandidates />
