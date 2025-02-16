@@ -3,7 +3,7 @@ export type InterviewStatus = "active" | "completed" | "published" | "draft" | "
 export interface Interview {
   id: string;
   title: string;
-  expirationDate: Date;
+  expirationDate: string;
   createdBy: {
     userId: string;
   };
@@ -15,11 +15,11 @@ export interface Interview {
   };
   interviewLink: {
     link: string;
-    expirationDate?: Date;
+    expirationDate?: string;
   };
   questions: InterviewQuestion[];
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface InterviewQuestion {
@@ -43,13 +43,13 @@ export interface InterviewApplicant {
   email: string;
   phone: string;
   status: "pending" | "accepted" | "rejected";
-  appliedAt: Date;
+  appliedAt: string;
 }
 
 export interface InterviewNotification {
   type: "reminder" | "other";
   message: string;
-  createdAt: Date;
+  createdAt: string;
 }
 
 export interface InterviewResult {
@@ -57,5 +57,5 @@ export interface InterviewResult {
   score: number;
   comments: string;
   reviewedBy: string;
-  reviewedAt: Date;
+  reviewedAt: string;
 }

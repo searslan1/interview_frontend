@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import api from "@/utils/api";
 import { User, UserPreference } from "@/types/user";
 
 interface AuthState {
@@ -8,10 +9,15 @@ interface AuthState {
   userPreferences: UserPreference | null;
   isLoading: boolean;
   error: string | null;
-  isEmailVerified: boolean; // ✅ E-posta doğrulama durumu
+  isEmailVerified: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
-  verifyEmail: (token: string) => Promise<void>; // ✅ Yeni fonksiyon
+  register: (userData: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+  }) => Promise<void>;
+  verifyEmail: (token: string) => Promise<void>;
   refreshToken: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -21,97 +27,93 @@ export const useAuthStore = create<AuthState>((set) => ({
   userPreferences: null,
   isLoading: false,
   error: null,
-  isEmailVerified: false, // ✅ Varsayılan olarak "false"
+  isEmailVerified: false,
 
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Giriş başarısız.");
-
+      const response = await api.post("/api/auth/login", { email, password });
+      // Backend, { success: true, data: { user, preferences } } şeklinde dönüyor.
+      if (!response.data.success) {
+        throw new Error(response.data.message || "Giriş başarısız.");
+      }
       set({
-        user: data.data.user,
-        userPreferences: data.data.preferences,
-        isEmailVerified: data.data.user.emailVerified, // ✅ Kullanıcı e-posta doğrulandı mı?
+        user: response.data.data.user,
+        userPreferences: response.data.data.preferences,
+        isEmailVerified: response.data.data.user.emailVerified,
         isLoading: false,
       });
     } catch (error: any) {
-      set({ error: error.message, isLoading: false });
+      set({
+        error: error.response?.data?.message || error.message || "Giriş başarısız.",
+        isLoading: false,
+      });
     }
   },
 
-  register: async (email, password) => {
+  register: async ({ name, email, password, phone }) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Kayıt başarısız.");
-
+      const response = await api.post("/api/auth/register", { name, email, password, phone });
+      if (!response.data.success) {
+        throw new Error(response.data.message || "Kayıt başarısız.");
+      }
       set({
-        user: data.data.user,
-        userPreferences: data.data.preferences,
-        isEmailVerified: false, // ✅ Yeni kayıt olan biri henüz doğrulanmamıştır.
+        user: response.data.data.user,
+        userPreferences: response.data.data.preferences,
+        isEmailVerified: false, // Yeni kayıtlar için
         isLoading: false,
       });
     } catch (error: any) {
-      set({ error: error.message, isLoading: false });
+      set({
+        error: error.response?.data?.message || error.message || "Kayıt başarısız.",
+        isLoading: false,
+      });
     }
   },
 
   verifyEmail: async (token) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch(`/api/auth/verify-email?token=${token}`, {
-        method: "GET",
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "E-posta doğrulama başarısız.");
-
-      set({ isEmailVerified: true, isLoading: false }); // ✅ E-posta doğrulama başarılı
+      const response = await api.get(`/api/auth/verify-email?token=${token}`);
+      if (!response.data.success) {
+        throw new Error(response.data.message || "E-posta doğrulama başarısız.");
+      }
+      set({ isEmailVerified: true, isLoading: false });
     } catch (error: any) {
-      set({ error: error.message, isLoading: false, isEmailVerified: false });
+      set({
+        error: error.response?.data?.message || error.message || "E-posta doğrulama başarısız.",
+        isLoading: false,
+        isEmailVerified: false,
+      });
     }
   },
 
   refreshToken: async () => {
     try {
-      const response = await fetch("/api/auth/refresh", {
-        method: "GET",
-        credentials: "include",
+      const response = await api.get("/api/auth/refresh");
+      if (!response.data.success) {
+        throw new Error(response.data.message || "Token yenileme başarısız.");
+      }
+      set({
+        user: response.data.data.user,
+        userPreferences: response.data.data.preferences,
       });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error("Token yenileme başarısız.");
-
-      set({ user: data.data.user, userPreferences: data.data.preferences });
     } catch (error: any) {
-      set({ error: error.message });
+      set({
+        error: error.response?.data?.message || error.message || "Token yenileme başarısız.",
+      });
     }
   },
 
   logout: async () => {
     try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-
+      await api.post("/api/auth/logout");
       set({ user: null, userPreferences: null, isEmailVerified: false });
     } catch (error: any) {
-      console.error("Çıkış hatası:", error.message);
+      set({
+        error: error.response?.data?.message || error.message || "Çıkış hatası.",
+      });
     }
   },
 }));

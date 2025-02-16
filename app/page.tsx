@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import AuthModal from "@/components/AuthModal";
+import RegisterModal from "@/components/RegisterModal";
 import LandingPageHeader from "@/components/LandingPageHeader";
 import { ChevronDown } from "lucide-react";
 import Image from "next/image";
@@ -12,11 +13,10 @@ import { useAuthStore } from "@/store/auth-store";
 
 export default function LandingPage() {
   const router = useRouter();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const { user } = useAuthStore();
 
-  // ✅ HATA: currentSlide Tanımlanmamış
-  // 🔥 ÇÖZÜM: currentSlide state'ini tanımlıyoruz
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState<number>(0);
 
   useEffect(() => {
@@ -26,7 +26,19 @@ export default function LandingPage() {
   }, [user, router]);
 
   const handleStart = () => {
-    setIsAuthModalOpen(true);
+    setIsLoginModalOpen(true);
+  };
+
+  // Login modal içerisindeki "Hesap oluştur" butonuna tıklanınca register modalı açılır.
+  const handleSwitchToRegister = () => {
+    setIsLoginModalOpen(false);
+    setIsRegisterModalOpen(true);
+  };
+
+  // Register modal içerisindeki "Giriş yap" butonuna tıklanınca login modalı açılır.
+  const handleSwitchToLogin = () => {
+    setIsRegisterModalOpen(false);
+    setIsLoginModalOpen(true);
   };
 
   const slides = [
@@ -47,14 +59,12 @@ export default function LandingPage() {
     },
   ];
 
-  // ✅ HATA: setCurrentSlide Tanımlanmamış
-  // 🔥 ÇÖZÜM: `setCurrentSlide` çağrısı için prevSlide'in tipini number olarak belirtiyoruz
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prevSlide: number) => (prevSlide + 1) % slides.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [slides.length]);
 
   return (
     <div className="min-h-screen bg-gradient-primary text-white">
@@ -74,7 +84,12 @@ export default function LandingPage() {
                   transition={{ duration: 1 }}
                   className="absolute inset-0"
                 >
-                  <Image src={slide.image || "/placeholder.svg"} alt={slide.title} layout="fill" objectFit="cover" />
+                  <Image
+                    src={slide.image || "/placeholder.svg"}
+                    alt={slide.title}
+                    layout="fill"
+                    objectFit="cover"
+                  />
                   <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                     <div className="text-center max-w-4xl px-4">
                       <motion.h1
@@ -104,7 +119,7 @@ export default function LandingPage() {
                     </div>
                   </div>
                 </motion.div>
-              ),
+              )
           )}
         </AnimatePresence>
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
@@ -112,8 +127,17 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Auth Modal */}
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      {/* Modals */}
+      <AuthModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onSwitchToRegister={handleSwitchToRegister}
+      />
+      <RegisterModal
+        isOpen={isRegisterModalOpen}
+        onClose={() => setIsRegisterModalOpen(false)}
+        onSwitchToLogin={handleSwitchToLogin}
+      />
     </div>
   );
 }

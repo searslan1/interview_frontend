@@ -10,8 +10,8 @@ export interface Notification {
     | "system_alert"
     | "announcement";
   message: string;
-  createdAt: Date;
+  createdAt: string;
   read: boolean;
-  readAt?: Date;
+  readAt?: string;
   actionUrl?: string;
 }

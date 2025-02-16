@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,24 +11,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/auth-store";
 import { Eye, EyeOff } from "lucide-react";
-import { useRouter } from "next/navigation";
 
-interface AuthModalProps {
+interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSwitchToRegister: () => void;
+  onSwitchToLogin: () => void; // Yeni prop
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({
+const RegisterModal: React.FC<RegisterModalProps> = ({
   isOpen,
   onClose,
-  onSwitchToRegister,
+  onSwitchToLogin,
 }) => {
-  const router = useRouter();
-  const { login, isLoading, error, user } = useAuthStore();
+  const { register, isLoading, error } = useAuthStore();
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,24 +37,23 @@ const AuthModal: React.FC<AuthModalProps> = ({
       alert("Şifre en az 6 karakter olmalıdır.");
       return;
     }
-    await login(email, password);
+    await register({ name, email, password, phone: phone || undefined });
   };
-
-  // Kullanıcı giriş yaptıysa yönlendir ve modalı kapat.
-  useEffect(() => {
-    if (user) {
-      onClose();
-      router.push("/dashboard");
-    }
-  }, [user, router, onClose]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Giriş Yap</DialogTitle>
+          <DialogTitle>Kayıt Ol</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            type="text"
+            placeholder="Adınız"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
           <Input
             type="email"
             placeholder="E-posta"
@@ -79,21 +78,27 @@ const AuthModal: React.FC<AuthModalProps> = ({
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+          <Input
+            type="text"
+            placeholder="Telefon (opsiyonel)"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
           {error && <p className="text-red-500">{error}</p>}
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Yükleniyor..." : "Giriş Yap"}
+            {isLoading ? "Yükleniyor..." : "Kayıt Ol"}
           </Button>
         </form>
         <Button
           variant="link"
-          onClick={onSwitchToRegister}
+          onClick={onSwitchToLogin}
           className="w-full mt-2"
         >
-          Hesap oluştur
+          Giriş yap
         </Button>
       </DialogContent>
     </Dialog>
   );
 };
 
-export default AuthModal;
+export default RegisterModal;
