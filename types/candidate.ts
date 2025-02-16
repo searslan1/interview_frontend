@@ -6,9 +6,10 @@ export interface Candidate {
   name: string
   email: string
   phone: string
-  dateOfBirth: Date
+  dateOfBirth: string
   gender: string
   nationality: string
+  status: "applied" | "interviewing" | "hired" | "rejected"
   address: {
     street: string
     city: string

@@ -3,7 +3,7 @@ export type UserRole = "admin" | "company" | "user" | "super_admin";
 export type UserStatus = "active" | "inactive" | "suspended";
 
 export interface User {
-  _id: string; // MongoDB ObjectId
+  _id: string; 
   name: string;
   email: string;
   role: UserRole;
@@ -14,9 +14,9 @@ export interface User {
   phoneVerified: boolean;
   phone?: string;
   failedLoginAttempts: number;
-  accountLockedUntil?: Date;
+  accountLockedUntil?: string;
   twoFactorEnabled: boolean;
-  lastActiveAt?: Date; // ✅ Kullanıcının en son aktif olduğu tarih
+  lastActiveAt?: string; // ✅ Kullanıcının en son aktif olduğu tarih
 
   // Profil Bilgileri
   profilePicture?: string;

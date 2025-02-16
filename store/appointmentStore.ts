@@ -3,12 +3,15 @@
 import { create } from "zustand";
 import type { Appointment } from "@/types/appointment";
 
+// Plain obje olarak saklayacağımız randevu tipi:
+type PlainAppointment = Omit<Appointment, "date"> & { date: string };
+
 interface AppointmentStore {
-  appointments: Appointment[];
+  appointments: PlainAppointment[];
   fetchAppointments: () => Promise<void>;
   addAppointment: (appointment: Appointment) => Promise<void>;
   deleteAppointment: (id: string) => Promise<void>;
-  sendReminder: (appointment: Appointment) => Promise<void>;
+  sendReminder: (appointment: PlainAppointment) => Promise<void>;
 }
 
 export const useAppointmentStore = create<AppointmentStore>((set, get) => ({
@@ -19,14 +22,14 @@ export const useAppointmentStore = create<AppointmentStore>((set, get) => ({
     try {
       const response = await fetch("/api/appointments");
       if (!response.ok) throw new Error("Randevular yüklenemedi.");
-      
+
       const data: Appointment[] = await response.json();
 
-      // ✅ Tarihleri `Date` nesnesine çevir
       set({
         appointments: data.map((appointment) => ({
           ...appointment,
-          date: new Date(appointment.date),
+          // Date nesnesi yerine ISO string kullanıyoruz
+          date: new Date(appointment.date).toISOString(),
         })),
       });
     } catch (error) {
@@ -46,9 +49,14 @@ export const useAppointmentStore = create<AppointmentStore>((set, get) => ({
 
       const newAppointment: Appointment = await response.json();
 
-      // ✅ Yeni randevuyu state'e ekle
       set((state) => ({
-        appointments: [...state.appointments, { ...newAppointment, date: new Date(newAppointment.date) }],
+        appointments: [
+          ...state.appointments,
+          {
+            ...newAppointment,
+            date: new Date(newAppointment.date).toISOString(),
+          },
+        ],
       }));
     } catch (error) {
       console.error("Randevu eklerken hata oluştu:", error);
@@ -61,7 +69,6 @@ export const useAppointmentStore = create<AppointmentStore>((set, get) => ({
       const response = await fetch(`/api/appointments/${id}`, { method: "DELETE" });
       if (!response.ok) throw new Error("Randevu silinemedi.");
 
-      // ✅ State'ten randevuyu kaldır
       set((state) => ({
         appointments: state.appointments.filter((appointment) => appointment.id !== id),
       }));
@@ -76,7 +83,7 @@ export const useAppointmentStore = create<AppointmentStore>((set, get) => ({
       const response = await fetch(`/api/appointments/${appointment.id}/reminder`, { method: "POST" });
       if (!response.ok) throw new Error("Hatırlatma gönderilemedi.");
 
-      console.log(`Hatırlatma gönderildi: ${appointment.candidateName} - ${appointment.date.toISOString()}`);
+      console.log(`Hatırlatma gönderildi: ${appointment.candidateName} - ${appointment.date}`);
     } catch (error) {
       console.error("Hatırlatma gönderirken hata oluştu:", error);
     }

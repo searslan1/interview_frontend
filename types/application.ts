@@ -38,7 +38,7 @@ export interface Application {
   interviewId: string;
   candidate: CandidateProfile; // ✅ Backend ile eşleşmesi için `candidate` objesi eklendi.
   status: ApplicationStatus;
-  submissionDate: Date;
+  submissionDate: string;
   completionStatus: "not_started" | "in_progress" | "completed" | "expired";
   submittedDocuments: SubmittedDocument[];
   personalityTestResult?: PersonalityTestResult;
@@ -49,8 +49,8 @@ export interface Application {
   hrNotes: HRNote[];
   allowRetry: boolean; // ✅ Kullanıcının mülakata tekrar katılmasına izin verilip verilmediği
   supportRequests: SupportRequest[]; // ✅ Kullanıcının destek talepleri
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface GeneralAIAnalysis {
@@ -65,7 +65,7 @@ export interface GeneralAIAnalysis {
 }
 
 export interface SupportRequest {
-  timestamp: Date;
+  timestamp: string;
   message: string;
 }
 

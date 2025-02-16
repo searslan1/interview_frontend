@@ -4,7 +4,7 @@ export interface Appointment {
   candidateName: string;
   type: "interview" | "followup";
   interviewId?: string;
-  date: Date;
+  date: string;
   duration: number;
   sendEmail?: boolean;
   sendSMS?: boolean;

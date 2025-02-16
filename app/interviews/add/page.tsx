@@ -74,7 +74,10 @@ export default function AddInterviewForm() {
     };
 
     try {
-      await createInterview(newInterview);
+      await createInterview({
+        ...newInterview,
+        expirationDate: newInterview.expirationDate.toISOString(),
+      });
       alert("Mülakat başarıyla oluşturuldu.");
     } catch (error) {
       console.error("Mülakat oluşturulurken hata:", error);

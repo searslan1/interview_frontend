@@ -3,38 +3,28 @@ import { Inter } from "next/font/google"
 import type { Metadata } from "next"
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import type React from "react" // Added import for React
+import ClientQueryProvider from "@/components/ClientQueryProvider"
+import type React from "react"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "İK Yönetim Paneli",
   description: "İnsan Kaynakları Yönetim Paneli",
-    generator: 'v0.dev'
+  generator: 'SEAİ'
 }
 
-const queryClient = new QueryClient()
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className={inter.className}>
-        <QueryClientProvider client={queryClient}>
+        <ClientQueryProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
             {children}
             <Toaster />
           </ThemeProvider>
-        </QueryClientProvider>
+        </ClientQueryProvider>
       </body>
     </html>
   )
 }
-
-
-
-import './globals.css'
