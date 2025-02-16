@@ -1,62 +1,64 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef, useCallback } from "react"
-import { useParams } from "next/navigation"
-import { useInfiniteQuery } from "@tanstack/react-query"
-import { fetchApplications } from "@/utils/api"
-import { ApplicationList } from "@/components/application-list"
-import { AdvancedFilters } from "@/components/advanced-filters"
-import { Header } from "@/components/header"
-import { LoadingSpinner } from "@/components/LoadingSpinner"
-import { useInterviewStore } from "@/store/interviewStore"
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useParams } from "next/navigation";
+import { ApplicationList } from "@/components/interview/ApplicationList";
+import { AdvancedFilters } from "@/components/advanced-filters";
+import { Header } from "@/components/header";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { useApplicationStore } from "@/store/application-store";
+import { useInterviewStore } from "@/store/interview-store";
 
-const PAGE_SIZE = 20
 
 export default function InterviewApplicationsPage() {
-  const { id } = useParams() as { id: string }
-  const [filters, setFilters] = useState({})
-  const { interviews, fetchInterviews } = useInterviewStore()
-  const [personalityTypes, setPersonalityTypes] = useState<string[]>([])
+  const params = useParams();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id; 
+  const [filters, setFilters] = useState({});
+  const { interviews, fetchAllInterviews } = useInterviewStore();
+  const { applications, isLoading, fetchApplications, getApplicationsByInterviewId } = useApplicationStore();
+  const [personalityTypes, setPersonalityTypes] = useState<string[]>([]);
 
   useEffect(() => {
-    fetchInterviews()
-    // Simulating fetching personality types
-    setPersonalityTypes(["INTJ", "ENTJ", "INFJ", "ENFJ", "ISTJ", "ESTJ", "ISFJ", "ESFJ"])
-  }, [fetchInterviews])
+    fetchAllInterviews(); 
+    fetchApplications();
+    setPersonalityTypes(["INTJ", "ENTJ", "INFJ", "ENFJ", "ISTJ", "ESTJ", "ISFJ", "ESFJ"]); 
+  }, []);
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } = useInfiniteQuery({
-    queryKey: ["applications", id, filters],
-    queryFn: ({ pageParam = 1 }) =>
-      fetchApplications({ interviewId: id, page: pageParam, pageSize: PAGE_SIZE, filters }),
-    getNextPageParam: (lastPage, pages) => (lastPage.totalPages > pages.length ? pages.length + 1 : undefined),
-  })
+  const formattedApplications = getApplicationsByInterviewId(id).map((app) => ({
+    id: app.id,
+    interviewId: app.interviewId,
+    candidateName: `${app.candidate.name} ${app.candidate.surname}`,
+    email: app.candidate.email,
+    status: app.status,
+    submissionDate: new Date(app.submissionDate).toISOString().split("T")[0],
+    aiScore: app.aiEvaluation?.overallScore ?? 0,
+    interviewTitle: interviews.find((i) => i.id === app.interviewId)?.title || "Bilinmeyen Mülakat",
+  }));
 
-  const intObserver = useRef<IntersectionObserver>()
+  const intObserver = useRef<IntersectionObserver>();
   const lastApplicationRef = useCallback(
-    (application: HTMLDivElement) => {
-      if (isFetchingNextPage) return
+    (node: HTMLTableRowElement | null) => {
+      if (!node || !intObserver.current) return;
 
-      if (intObserver.current) intObserver.current.disconnect()
+      intObserver.current.disconnect();
 
-      intObserver.current = new IntersectionObserver((applications) => {
-        if (applications[0].isIntersecting && hasNextPage) {
-          fetchNextPage()
+      intObserver.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          fetchApplications();
         }
-      })
+      });
 
-      if (application) intObserver.current.observe(application)
+      intObserver.current.observe(node);
     },
-    [isFetchingNextPage, fetchNextPage, hasNextPage],
-  )
+    [fetchApplications]
+  );
 
   const handleFilterChange = (newFilters: any) => {
-    setFilters(newFilters)
-  }
+    setFilters(newFilters);
+  };
 
-  if (status === "loading") return <LoadingSpinner />
-  if (status === "error") return <div>Bir hata oluştu</div>
-
-  const applications = data?.pages.flatMap((page) => page.data) || []
+  if (isLoading) return <LoadingSpinner />;
+  if (!formattedApplications.length) return <div>Henüz başvuru yok.</div>;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -68,10 +70,8 @@ export default function InterviewApplicationsPage() {
           interviews={interviews}
           personalityTypes={personalityTypes}
         />
-        <ApplicationList applications={applications} lastApplicationRef={lastApplicationRef} />
-        {isFetchingNextPage && <LoadingSpinner />}
+        <ApplicationList applications={formattedApplications} lastApplicationRef={lastApplicationRef} />
       </main>
     </div>
-  )
+  );
 }
-

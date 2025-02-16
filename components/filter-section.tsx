@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 
 interface FilterSectionProps {
   onFilterChange: (filters: any) => void
+  filters: Record<string, any>;
 }
 
 export function FilterSection({ onFilterChange }: FilterSectionProps) {

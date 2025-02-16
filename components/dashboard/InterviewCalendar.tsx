@@ -1,33 +1,36 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar } from "@/components/ui/calendar"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { AppointmentForm } from "@/components/dashboard/AppointmentForm"
-import { AppointmentList } from "@/components/dashboard/AppointmentList"
-import { useAppointmentStore } from "@/store/appointmentStore"
-import { Appointment } from "@/types/appointment"
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AppointmentForm } from "@/components/dashboard/AppointmentForm";
+import { AppointmentList } from "@/components/dashboard/AppointmentList";
+import { useAppointmentStore } from "@/store/appointmentStore";
+import { Appointment } from "@/types/appointment";
 
 export function InterviewCalendar() {
-  const [date, setDate] = useState<Date | undefined>(new Date())
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const { appointments, fetchAppointments } = useAppointmentStore()
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const { appointments, fetchAppointments } = useAppointmentStore();
 
   useEffect(() => {
-    fetchAppointments()
-  }, [fetchAppointments])
+    fetchAppointments();
+  }, [fetchAppointments]);
 
   const getAppointmentsForDate = (day: Date | undefined) => {
-    if (!day) return []
-    return appointments.filter((appointment) => appointment.date.toDateString() === day.toDateString())
-  }
+    if (!day) return [];
+    return appointments.filter((appointment) => {
+      const appointmentDate = new Date(appointment.date); // ✅ Kesin Date objesine çeviriyoruz
+      return appointmentDate.toDateString() === day.toDateString();
+    });
+  };
 
   const handleDateSelect = (selectedDate: Date | undefined) => {
-    setDate(selectedDate)
-    setIsAddDialogOpen(true)
-  }
+    setDate(selectedDate);
+    setIsAddDialogOpen(true);
+  };
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
@@ -44,10 +47,11 @@ export function InterviewCalendar() {
               className="rounded-md border"
               components={{
                 DayContent: ({ date }) => {
-                  const dayAppointments = getAppointmentsForDate(date)
+                  if (!date) return null; // ✅ Eğer date yoksa render etme
+                  const dayAppointments = getAppointmentsForDate(date);
                   return (
                     <div className="relative w-full h-full">
-                      <div>{date?.getDate()}</div>
+                      <div>{new Date(date).getDate()}</div> {/* ✅ Kesin `Date` nesnesine çeviriyoruz */}
                       {dayAppointments.length > 0 && (
                         <div className="absolute bottom-0 right-0 flex space-x-1">
                           {dayAppointments.slice(0, 3).map((appointment, index) => (
@@ -64,7 +68,7 @@ export function InterviewCalendar() {
                         </div>
                       )}
                     </div>
-                  )
+                  );
                 },
               }}
             />
@@ -87,6 +91,5 @@ export function InterviewCalendar() {
         </DialogContent>
       </Dialog>
     </Card>
-  )
+  );
 }
-

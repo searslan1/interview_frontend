@@ -1,38 +1,40 @@
-"use client"
+"use client";
 
-
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
-
-// Bu örnek sorular. Gerçek uygulamada bu sorular API'den gelecektir.
-const availableQuestions = [
-  { id: "1", text: "React hooks nedir ve ne işe yarar?" },
-  { id: "2", text: "REST API nedir?" },
-  { id: "3", text: "JavaScript'te closure nedir?" },
-  { id: "4", text: "CSS flexbox ve grid arasındaki fark nedir?" },
-]
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { InterviewQuestion } from "@/types/interview";
+import { useQuestionStore } from "@/store/question-store"; // ✅ API'den sorular çekilecek
 
 type QuestionSelectorProps = {
-  selectedQuestions: string[]
-  onQuestionsChange: (questions: string[]) => void
-}
+  selectedQuestions: InterviewQuestion[];
+  onQuestionsChange: (questions: InterviewQuestion[]) => void;
+};
 
 export function QuestionSelector({ selectedQuestions, onQuestionsChange }: QuestionSelectorProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [localSelectedQuestions, setLocalSelectedQuestions] = useState(selectedQuestions)
+  const [isOpen, setIsOpen] = useState(false);
+  const [localSelectedQuestions, setLocalSelectedQuestions] = useState<InterviewQuestion[]>(selectedQuestions);
+  
+  // ✅ API'den soruları çekiyoruz
+  const { questions, fetchQuestions, isLoading } = useQuestionStore();
 
-  const handleQuestionToggle = (questionId: string) => {
+  useEffect(() => {
+    fetchQuestions(); // ✅ Component mount olduğunda API çağrısı
+  }, [fetchQuestions]);
+
+  const handleQuestionToggle = (question: InterviewQuestion) => {
     setLocalSelectedQuestions((prev) =>
-      prev.includes(questionId) ? prev.filter((id) => id !== questionId) : [...prev, questionId],
-    )
-  }
+      prev.some((q) => q.id === question.id)
+        ? prev.filter((q) => q.id !== question.id)
+        : [...prev, { ...question, keywords: question.keywords ?? [] }] 
+    );
+  };
 
   const handleSave = () => {
-    onQuestionsChange(localSelectedQuestions)
-    setIsOpen(false)
-  }
+    onQuestionsChange(localSelectedQuestions);
+    setIsOpen(false);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -43,26 +45,26 @@ export function QuestionSelector({ selectedQuestions, onQuestionsChange }: Quest
         <DialogHeader>
           <DialogTitle>Soruları Seç</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          {availableQuestions.map((question) => (
-            <div key={question.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={question.id}
-                checked={localSelectedQuestions.includes(question.id)}
-                onCheckedChange={() => handleQuestionToggle(question.id)}
-              />
-              <label
-                htmlFor={question.id}
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                {question.text}
-              </label>
-            </div>
-          ))}
-        </div>
+
+        {isLoading ? (
+          <p>Yükleniyor...</p>
+        ) : (
+          <div className="grid gap-4 py-4">
+            {questions.map((question) => (
+              <div key={question.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={question.id}
+                  checked={localSelectedQuestions.some((q) => q.id === question.id)}
+                  onCheckedChange={() => handleQuestionToggle(question)}
+                />
+                <label htmlFor={question.id} className="text-sm font-medium">{question.questionText}</label>
+              </div>
+            ))}
+          </div>
+        )}
+
         <Button onClick={handleSave}>Kaydet</Button>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
-

@@ -1,50 +1,84 @@
-"use client"
+"use client";
 
-
-import { create } from "zustand"
-import type { Appointment } from "@/types/appointment"
+import { create } from "zustand";
+import type { Appointment } from "@/types/appointment";
 
 interface AppointmentStore {
-  appointments: Appointment[]
-  fetchAppointments: () => Promise<void>
-  addAppointment: (appointment: Appointment) => void
-  deleteAppointment: (id: string) => void
-  sendReminder: (appointment: Appointment) => void
+  appointments: Appointment[];
+  fetchAppointments: () => Promise<void>;
+  addAppointment: (appointment: Appointment) => Promise<void>;
+  deleteAppointment: (id: string) => Promise<void>;
+  sendReminder: (appointment: Appointment) => Promise<void>;
 }
 
-export const useAppointmentStore = create<AppointmentStore>((set) => ({
+export const useAppointmentStore = create<AppointmentStore>((set, get) => ({
   appointments: [],
-  fetchAppointments: async () => {
-    // Burada gerçek bir API çağrısı yapılacak
-    const mockAppointments: Appointment[] = [
-      {
-        id: "1",
-        candidateName: "Ahmet Yılmaz",
-        type: "interview",
-        date: new Date(2023, 5, 15, 10, 0),
-        duration: 60,
-      },
-      {
-        id: "2",
-        candidateName: "Ayşe Kaya",
-        type: "followup",
-        date: new Date(2023, 5, 16, 14, 30),
-        duration: 30,
-      },
-    ]
-    set({ appointments: mockAppointments })
-  },
-  addAppointment: (appointment) =>
-    set((state) => ({
-      appointments: [...state.appointments, appointment],
-    })),
-  deleteAppointment: (id) =>
-    set((state) => ({
-      appointments: state.appointments.filter((appointment) => appointment.id !== id),
-    })),
-  sendReminder: (appointment) => {
-    // Burada gerçek bir hatırlatma gönderme işlemi yapılacak
-    console.log(`Hatırlatma gönderildi: ${appointment.candidateName} - ${appointment.date}`)
-  },
-}))
 
+  // ✅ API'den randevuları çek
+  fetchAppointments: async () => {
+    try {
+      const response = await fetch("/api/appointments");
+      if (!response.ok) throw new Error("Randevular yüklenemedi.");
+      
+      const data: Appointment[] = await response.json();
+
+      // ✅ Tarihleri `Date` nesnesine çevir
+      set({
+        appointments: data.map((appointment) => ({
+          ...appointment,
+          date: new Date(appointment.date),
+        })),
+      });
+    } catch (error) {
+      console.error("Randevular çekilirken hata oluştu:", error);
+    }
+  },
+
+  // ✅ Yeni randevu ekle
+  addAppointment: async (appointment) => {
+    try {
+      const response = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(appointment),
+      });
+      if (!response.ok) throw new Error("Randevu eklenemedi.");
+
+      const newAppointment: Appointment = await response.json();
+
+      // ✅ Yeni randevuyu state'e ekle
+      set((state) => ({
+        appointments: [...state.appointments, { ...newAppointment, date: new Date(newAppointment.date) }],
+      }));
+    } catch (error) {
+      console.error("Randevu eklerken hata oluştu:", error);
+    }
+  },
+
+  // ✅ Randevu sil
+  deleteAppointment: async (id) => {
+    try {
+      const response = await fetch(`/api/appointments/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Randevu silinemedi.");
+
+      // ✅ State'ten randevuyu kaldır
+      set((state) => ({
+        appointments: state.appointments.filter((appointment) => appointment.id !== id),
+      }));
+    } catch (error) {
+      console.error("Randevu silerken hata oluştu:", error);
+    }
+  },
+
+  // ✅ Hatırlatma gönder
+  sendReminder: async (appointment) => {
+    try {
+      const response = await fetch(`/api/appointments/${appointment.id}/reminder`, { method: "POST" });
+      if (!response.ok) throw new Error("Hatırlatma gönderilemedi.");
+
+      console.log(`Hatırlatma gönderildi: ${appointment.candidateName} - ${appointment.date.toISOString()}`);
+    } catch (error) {
+      console.error("Hatırlatma gönderirken hata oluştu:", error);
+    }
+  },
+}));
