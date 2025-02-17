@@ -1,15 +1,15 @@
 // "use client"
-// 
+//
 // import { create } from "zustand"
 // import { mockReportingData } from "@/mockdata/mock-details-data"
-// 
+//
 // interface ReportingStore {
 //   reportData: typeof mockReportingData
 //   isLoading: boolean
 //   error: string | null
 //   fetchReportData: () => Promise<void>
 // }
-// 
+//
 // export const useReportingStore = create<ReportingStore>((set) => ({
 //   reportData: mockReportingData,
 //   isLoading: false,
