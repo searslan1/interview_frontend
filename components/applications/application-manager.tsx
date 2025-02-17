@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CandidateDetailCard } from "@/components/candidate-detail-card";
+import { CandidateDetailCard } from "@/components/candidate/candidate-detail-card";
 import { useApplicationStore } from "@/store/application-store"; // API verilerini çekmek için store kullanıyoruz.
 import type { Application } from "@/types/application";
 

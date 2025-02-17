@@ -7,12 +7,7 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-
-interface Application {
-  id: number
-  name: string
-  score: number
-}
+import { Application } from "@/types/application"
 
 interface ApplicationSliderProps {
   applications: Application[]

@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { useInterviewStore } from "@/store/interview-store"
-import { InterviewList } from "@/components/interview-list"
-import { FilterSection } from "@/components/filter-section"
+import { InterviewList } from "@/components/interview/interview-list"
+import { FilterSection } from "@/components/interview/filter-section"
 import { Header } from "@/components/header"
-import { CreateInterviewDialog } from "@/components/create-interview-dialog"
+import { CreateInterviewDialog } from "@/components/interview/create-interview-dialog"
 import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 

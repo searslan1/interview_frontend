@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { useCandidateStore } from "@/store/candidateStore"
-import { CandidateList } from "@/components/candidate-list"
-import { CandidateFilters } from "@/components/candidate-filters"
+import { CandidateList } from "@/components/candidate/candidate-list"
+import { CandidateFilters } from "@/components/candidate/candidate-filters"
 import { Header } from "@/components/header"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 

@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useInterviewStore } from "@/store/interview-store";
 import Header from "@/components/header";
 import { OverviewStats } from "@/components/dashboard/OverviewStats";
-import { InterviewCard } from "@/components/InterviewCard";
+import { InterviewCard } from "@/components/interview/InterviewCard";
 import { InterviewSlider } from "@/components/dashboard/InterviewSlider";
 import { ApplicationSlider } from "@/components/dashboard/ApplicationSlider";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";

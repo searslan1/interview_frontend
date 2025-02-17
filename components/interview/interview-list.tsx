@@ -1,5 +1,5 @@
 "use client"
-import { InterviewCard } from "@/components/InterviewCard"
+import { InterviewCard } from "@/components/interview/InterviewCard"
 import type { Interview } from "@/types/interview"
 
 interface InterviewListProps {

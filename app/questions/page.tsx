@@ -1,4 +1,4 @@
-import { QuestionList } from "@/components/question-list"
+import { QuestionList } from "@/components/interview/question-list"
 
 export default function QuestionsPage() {
   return (

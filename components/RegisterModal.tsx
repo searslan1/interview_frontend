@@ -15,13 +15,15 @@ import { Eye, EyeOff } from "lucide-react";
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSwitchToLogin: () => void; // Yeni prop
+  onSwitchToLogin: () => void;
+  onRegisterSuccess: () => void; // Yeni prop
 }
 
 const RegisterModal: React.FC<RegisterModalProps> = ({
   isOpen,
   onClose,
   onSwitchToLogin,
+  onRegisterSuccess,
 }) => {
   const { register, isLoading, error } = useAuthStore();
 
@@ -37,7 +39,12 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
       alert("Şifre en az 6 karakter olmalıdır.");
       return;
     }
-    await register({ name, email, password, phone: phone || undefined });
+    const result = await register({ name, email, password, phone: phone || undefined });
+    
+    if (!error) {
+      onClose();
+      onRegisterSuccess(); // Kayıt başarılıysa VerifyEmailPage'i göster
+    }
   };
 
   return (

@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { Candidate } from "@/mockdata/candidates"
-import { CandidateDetails } from "@/components/candidate-details"
+import { CandidateDetails } from "@/components/candidate/candidate-details"
 
 interface CandidateListProps {
   candidates: Candidate[]

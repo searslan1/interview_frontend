@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSwitchToRegister: () => void;
+  onSwitchToRegister?: () => void; // Burayı opsiyonel hale getirdik
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({
@@ -30,19 +30,23 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null); // Hata yönetimi için
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 6) {
-      alert("Şifre en az 6 karakter olmalıdır.");
+      setLocalError("Şifre en az 6 karakter olmalıdır.");
       return;
     }
+    setLocalError(null); // Önceki hataları temizle
     await login(email, password);
   };
 
   // Kullanıcı giriş yaptıysa yönlendir ve modalı kapat.
   useEffect(() => {
     if (user) {
+      setEmail(""); // Email alanını sıfırla
+      setPassword(""); // Şifre alanını sıfırla
       onClose();
       router.push("/dashboard");
     }
@@ -79,7 +83,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
-          {error && <p className="text-red-500">{error}</p>}
+          {(error || localError) && <p className="text-red-500">{localError || error}</p>}
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Yükleniyor..." : "Giriş Yap"}
           </Button>

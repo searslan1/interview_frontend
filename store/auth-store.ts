@@ -58,19 +58,24 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (!response.data.success) {
         throw new Error(response.data.message || "Kayıt başarısız.");
       }
+      // API'den dönen veride token varsa döndür.
+      const data = response.data.data;
       set({
-        user: response.data.data.user,
-        userPreferences: response.data.data.preferences,
+        user: data.user,
+        userPreferences: data.preferences,
         isEmailVerified: false, // Yeni kayıtlar için
         isLoading: false,
       });
+      return data; // Burada token ya da diğer verileri döndürebilirsin.
     } catch (error: any) {
       set({
         error: error.response?.data?.message || error.message || "Kayıt başarısız.",
         isLoading: false,
       });
+      return null;
     }
   },
+  
 
   verifyEmail: async (token) => {
     set({ isLoading: true, error: null });
@@ -88,6 +93,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
     }
   },
+  
 
   refreshToken: async () => {
     try {
