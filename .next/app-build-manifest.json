@@ -1,31 +1,3 @@
 {
-  "pages": {
-    "/(protected)/dashboard/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(protected)/dashboard/page.js"
-    ],
-    "/(protected)/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/(protected)/layout.css",
-      "static/chunks/app/(protected)/layout.js"
-    ],
-    "/(public)/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(public)/page.js"
-    ],
-    "/(public)/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/(public)/layout.css",
-      "static/chunks/app/(public)/layout.js"
-    ],
-    "/_not-found/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
-    ]
-  }
+  "pages": {}
 }

@@ -1,5 +1,1 @@
-{
-  "/_not-found/page": "app/_not-found/page.js",
-  "/(protected)/dashboard/page": "app/(protected)/dashboard/page.js",
-  "/(public)/page": "app/(public)/page.js"
-}
+{}
