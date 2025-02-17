@@ -1,11 +1,11 @@
-"use client"
+  "use client"
 
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Settings, Users, CreditCard, Bell, Paintbrush, Brain, Shield } from "lucide-react"
 
-import { GeneralSettings } from "@/components/settings/GeneralSettings"
+import { GeneralSettings } from "@/components/settings/ProfileSetting"
 import { AccountSettings } from "@/components/settings/AccountSettings"
 import { SubscriptionSettings } from "@/components/settings/SubscriptionSettings"
 import { NotificationSettings } from "@/components/settings/NotificationSettings"

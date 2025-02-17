@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useInterviewStore } from "@/store/interview-store";
+import { useInterviewStore } from "@/store/interviewStore";
 import type { Interview } from "@/types/interview";
 
 export function InterviewSlider() {

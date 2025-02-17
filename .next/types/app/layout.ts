@@ -1,8 +1,8 @@
-// File: /Users/macbookpro/interview_frontend/app/layout.tsx
-import * as entry from '../../../app/layout.js'
+// File: /home/alfonso/interview_frontend/app/layout.tsx
+import * as entry from '../../../app/(public)/layout.jsx'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
-type TEntry = typeof import('../../../app/layout.js')
+type TEntry = typeof import('../../../app/(public)/layout.jsx')
 
 // Check that the entry is a valid entry
 checkFields<Diff<{
