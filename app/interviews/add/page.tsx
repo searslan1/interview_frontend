@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { QuestionSelector } from "@/components/question-selector";
+import { QuestionSelector } from "@/components/interview/question-selector";
 import { useInterviewStore } from "@/store/interview-store";
 import { useAuthStore } from "@/store/auth-store"; // Kullanıcı kimliği için
 

@@ -6,9 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { VideoPlayer } from "@/components/video-player"
-import { AIReport } from "@/components/ai-report"
-import { QuestionReview } from "@/components/question-review"
+import { VideoPlayer } from "@/components/candidate/video-player"
+import { AIReport } from "@/components/candidate/ai-report"
+import { QuestionReview } from "@/components/interview/question-review"
 
 interface CandidateDetailPopupProps {
   applicationId: number

@@ -2,11 +2,11 @@
 
 import { useState, useRef, useEffect } from "react"
 import { motion } from "framer-motion"
-import { VideoPlayer } from "@/components/video-player"
-import { AIGeneralAnalysis } from "@/components/ai-general-analysis"
-import { AIDetailedReports } from "@/components/ai-detailed-reports"
-import { QuestionReview } from "@/components/question-review"
-import { CandidateManagement } from "@/components/candidate-management"
+import { VideoPlayer } from "@/components/candidate/video-player"
+import { AIGeneralAnalysis } from "@/components/candidate/ai-general-analysis"
+import { AIDetailedReports } from "@/components/candidate/ai-detailed-reports"
+import { QuestionReview } from "@/components/interview/question-review"
+import { CandidateManagement } from "@/components/candidate/candidate-management"
 
 interface CandidateDetailReviewProps {
   candidate: any // Replace with a proper type

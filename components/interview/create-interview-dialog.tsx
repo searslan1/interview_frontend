@@ -7,11 +7,11 @@ import * as z from "zod"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { InterviewGeneralInfo } from "./interview/InterviewGeneralInfo"
-import { AIQuestionCreation } from "./interview/AIQuestionCreation"
-import { EvaluationSettings } from "./interview/EvaluationSettings"
-import { PublishSettings } from "./interview/PublishSettings"
-import { InterviewPreview } from "./interview/InterviewPreview"
+import { InterviewGeneralInfo } from "./InterviewGeneralInfo"
+import { AIQuestionCreation } from "./AIQuestionCreation"
+import { EvaluationSettings } from "./EvaluationSettings"
+import { PublishSettings } from "./PublishSettings"
+import { InterviewPreview } from "./InterviewPreview"
 
 const interviewSchema = z.object({
   title: z.string().min(2, "Mülakat adı en az 2 karakter olmalıdır."),

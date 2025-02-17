@@ -41,11 +41,17 @@ export default function LandingPage() {
     setIsLoginModalOpen(true);
   };
 
+  // Register başarılı olduğunda doğrulama sayfasına yönlendir
+  const handleRegisterSuccess = () => {
+    router.push("/verify-email");
+  };
+
   const slides = [
     {
       image: "/hero-1.jpg",
       title: "Mülakat Süreçlerinizi Dönüştürün",
-      description: "Yapay zeka destekli mülakat yönetimi ile işe alım süreçlerinizi optimize edin",
+      description:
+        "Yapay zeka destekli mülakat yönetimi ile işe alım süreçlerinizi optimize edin",
     },
     {
       image: "/hero-2.jpg",
@@ -55,7 +61,8 @@ export default function LandingPage() {
     {
       image: "/hero-3.jpg",
       title: "Verimli İşe Alım Süreci",
-      description: "Zaman ve kaynaklarınızı etkin kullanarak doğru adayları bulun",
+      description:
+        "Zaman ve kaynaklarınızı etkin kullanarak doğru adayları bulun",
     },
   ];
 
@@ -108,7 +115,11 @@ export default function LandingPage() {
                       >
                         {slide.description}
                       </motion.p>
-                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.6 }}
+                      >
                         <Button
                           onClick={handleStart}
                           className="bg-modern-teal hover:bg-modern-teal/80 text-white text-lg py-2 px-6 rounded-full transition-colors duration-300"
@@ -137,6 +148,7 @@ export default function LandingPage() {
         isOpen={isRegisterModalOpen}
         onClose={() => setIsRegisterModalOpen(false)}
         onSwitchToLogin={handleSwitchToLogin}
+        onRegisterSuccess={handleRegisterSuccess} // ✅ Doğrulama sayfasına yönlendir
       />
     </div>
   );

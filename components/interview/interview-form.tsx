@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns"
 import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { QuestionSelector } from "@/components/question-selector"
+import { QuestionSelector } from "@/components/interview/question-selector"
 
 const formSchema = z.object({
   name: z.string().min(2, "Mülakat adı en az 2 karakter olmalıdır."),

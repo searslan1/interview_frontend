@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
-import { CandidateDetailReview } from "@/components/candidate-detail-review"
+import { CandidateDetailReview } from "@/components/candidate/candidate-detail-review"
 import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { Star } from "lucide-react"

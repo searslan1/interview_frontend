@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { ApplicationList } from "@/components/interview/ApplicationList";
-import { AdvancedFilters } from "@/components/advanced-filters";
+import { AdvancedFilters } from "@/components/applications/advanced-filters";
 import { Header } from "@/components/header";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useApplicationStore } from "@/store/application-store";
