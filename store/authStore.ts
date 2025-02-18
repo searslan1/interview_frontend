@@ -80,30 +80,39 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  refreshToken: async () => {
-    try {
-      const storedToken = localStorage.getItem("token"); // ✅ Token saklandığı yerden al
-      if (!storedToken) throw new Error("Oturum süresi doldu.");
+refreshToken: async () => {
+  try {
+    if (typeof window === "undefined") return; // 🚀 SSR sırasında çalışmasını engelle
 
-      const data = await authService.refreshToken();
-      localStorage.setItem("token", data.data.token); // ✅ Yeni token güncelle
-      localStorage.setItem("user", JSON.stringify(data.data.user));
+    const storedToken = localStorage.getItem("token"); // ✅ Önce token'i al
+    if (!storedToken) throw new Error("Oturum süresi doldu.");
 
-      set({
-        user: data.data.user,
-        userPreferences: data.data.preferences,
-      });
-    } catch (error: any) {
-      set({
-        error: "Oturum süresi doldu. Lütfen tekrar giriş yapın.",
-        user: null,
-        userPreferences: null,
-        isEmailVerified: false,
-      });
-      localStorage.removeItem("user");  // ✅ Çıkış yaparken localStorage temizle
-      localStorage.removeItem("token");
-    }
-  },
+    const data = await authService.refreshToken(storedToken); // ✅ Eski token göndererek yenile
+
+    localStorage.setItem("token", data.data.token); // ✅ Yeni token kaydet
+    localStorage.setItem("user", JSON.stringify(data.data.user));
+
+    set({
+      user: data.data.user,
+      userPreferences: data.data.preferences,
+      isLoading: false, // ✅ Kullanıcıyı tekrar aktif hale getir
+      error: null,
+    });
+  } catch (error: any) {
+    console.error("Token yenileme hatası:", error.message);
+
+    set({
+      error: "Oturum süresi doldu. Lütfen tekrar giriş yapın.",
+      user: null,
+      userPreferences: null,
+      isEmailVerified: false,
+      isLoading: false, // ✅ Logout sonrası durumu sıfırla
+    });
+
+    localStorage.removeItem("user"); // ✅ Oturum kapatılırsa temizle
+    localStorage.removeItem("token");
+  }
+},
 
   logout: async () => {
     try {

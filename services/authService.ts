@@ -21,7 +21,7 @@ export const authService = {
     return response.data;
   },
 
-  async refreshToken() {
+  async refreshToken(storedToken: string) {
     try {
       const response = await api.get("/auth/refresh");
       return response.data;
