@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import type { UseFormReturn } from "react-hook-form"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
+import type { UseFormReturn } from "react-hook-form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 interface EvaluationSettingsProps {
-  form: UseFormReturn<any>
+  form: UseFormReturn<any>;
 }
 
 export function EvaluationSettings({ form }: EvaluationSettingsProps) {
@@ -18,46 +18,53 @@ export function EvaluationSettings({ form }: EvaluationSettingsProps) {
       <CardContent className="space-y-4">
         <div className="flex items-center space-x-2">
           <Switch
-            id="useAutomaticScoring"
-            checked={form.watch("aiEvaluation.useAutomaticScoring")}
-            onCheckedChange={(checked) => form.setValue("aiEvaluation.useAutomaticScoring", checked)}
+            id="aiMetadata.useAutomaticScoring"
+            checked={form.watch("aiMetadata.useAutomaticScoring")}
+            onCheckedChange={(checked) => form.setValue("aiMetadata.useAutomaticScoring", checked)}
           />
-          <Label htmlFor="useAutomaticScoring">AI Otomatik Puanlama Kullan</Label>
+          <Label htmlFor="aiMetadata.useAutomaticScoring">AI Otomatik Puanlama Kullan</Label>
         </div>
         <div className="flex items-center space-x-2">
           <Switch
-            id="gestureAnalysis"
-            checked={form.watch("aiEvaluation.gestureAnalysis")}
-            onCheckedChange={(checked) => form.setValue("aiEvaluation.gestureAnalysis", checked)}
+            id="aiMetadata.gestureAnalysis"
+            checked={form.watch("aiMetadata.gestureAnalysis")}
+            onCheckedChange={(checked) => form.setValue("aiMetadata.gestureAnalysis", checked)}
           />
-          <Label htmlFor="gestureAnalysis">Jest & Mimik Analizi</Label>
+          <Label htmlFor="aiMetadata.gestureAnalysis">Jest & Mimik Analizi</Label>
         </div>
         <div className="flex items-center space-x-2">
           <Switch
-            id="speechAnalysis"
-            checked={form.watch("aiEvaluation.speechAnalysis")}
-            onCheckedChange={(checked) => form.setValue("aiEvaluation.speechAnalysis", checked)}
+            id="aiMetadata.speechAnalysis"
+            checked={form.watch("aiMetadata.speechAnalysis")}
+            onCheckedChange={(checked) => form.setValue("aiMetadata.speechAnalysis", checked)}
           />
-          <Label htmlFor="speechAnalysis">Konuşma Analizi</Label>
+          <Label htmlFor="aiMetadata.speechAnalysis">Konuşma Analizi</Label>
         </div>
         <div className="flex items-center space-x-2">
           <Switch
-            id="eyeContactAnalysis"
-            checked={form.watch("aiEvaluation.eyeContactAnalysis")}
-            onCheckedChange={(checked) => form.setValue("aiEvaluation.eyeContactAnalysis", checked)}
+            id="aiMetadata.eyeContactAnalysis"
+            checked={form.watch("aiMetadata.eyeContactAnalysis")}
+            onCheckedChange={(checked) => form.setValue("aiMetadata.eyeContactAnalysis", checked)}
           />
-          <Label htmlFor="eyeContactAnalysis">Göz Teması Analizi</Label>
+          <Label htmlFor="aiMetadata.eyeContactAnalysis">Göz Teması Analizi</Label>
         </div>
         <div className="flex items-center space-x-2">
           <Switch
-            id="tonalAnalysis"
-            checked={form.watch("aiEvaluation.tonalAnalysis")}
-            onCheckedChange={(checked) => form.setValue("aiEvaluation.tonalAnalysis", checked)}
+            id="aiMetadata.tonalAnalysis"
+            checked={form.watch("aiMetadata.tonalAnalysis")}
+            onCheckedChange={(checked) => form.setValue("aiMetadata.tonalAnalysis", checked)}
           />
-          <Label htmlFor="tonalAnalysis">Ses Tonu Analizi</Label>
+          <Label htmlFor="aiMetadata.tonalAnalysis">Ses Tonu Analizi</Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="aiMetadata.keywordMatchScore"
+            checked={!!form.watch("aiMetadata.keywordMatchScore")}
+            onCheckedChange={(checked) => form.setValue("aiMetadata.keywordMatchScore", checked ? 1 : 0)}
+          />
+          <Label htmlFor="aiMetadata.keywordMatchScore">Anahtar Kelime Eşleşme Skoru</Label>
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
-

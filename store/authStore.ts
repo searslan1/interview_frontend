@@ -20,7 +20,7 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
+  user: typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "null") : null,  // ✅ Kullanıcıyı sakla
   userPreferences: null,
   isLoading: false,
   error: null,
@@ -30,6 +30,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const data = await authService.login(email, password);
+      localStorage.setItem("user", JSON.stringify(data.data.user)); // ✅ Kullanıcıyı localStorage'a kaydet
+      localStorage.setItem("token", data.data.token); // ✅ Token sakla
       set({
         user: data.data.user,
         userPreferences: data.data.preferences,
@@ -38,7 +40,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
     } catch (error: any) {
       set({
-        error: error.response?.data?.message || error.message || "Giriş başarısız.",
+        error: error.response?.data?.message || "Giriş başarısız.",
         isLoading: false,
       });
     }
@@ -52,12 +54,12 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ isLoading: false });
         return true;
       } else {
-        set({ isLoading: false });
+        set({ isLoading: false, error: "Kayıt başarısız. Lütfen tekrar deneyin." });
         return false;
       }
     } catch (error: any) {
       set({
-        error: error.response?.data?.message || error.message || "Kayıt başarısız.",
+        error: error.response?.data?.message || "Kayıt başarısız.",
         isLoading: false,
       });
       return false;
@@ -71,7 +73,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ isEmailVerified: true, isLoading: false });
     } catch (error: any) {
       set({
-        error: error.response?.data?.message || error.message || "E-posta doğrulama başarısız.",
+        error: error.response?.data?.message || "E-posta doğrulama başarısız.",
         isLoading: false,
         isEmailVerified: false,
       });
@@ -80,7 +82,13 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   refreshToken: async () => {
     try {
+      const storedToken = localStorage.getItem("token"); // ✅ Token saklandığı yerden al
+      if (!storedToken) throw new Error("Oturum süresi doldu.");
+
       const data = await authService.refreshToken();
+      localStorage.setItem("token", data.data.token); // ✅ Yeni token güncelle
+      localStorage.setItem("user", JSON.stringify(data.data.user));
+
       set({
         user: data.data.user,
         userPreferences: data.data.preferences,
@@ -88,21 +96,29 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error: any) {
       set({
         error: "Oturum süresi doldu. Lütfen tekrar giriş yapın.",
-        user: null, // Kullanıcıyı temizle
+        user: null,
         userPreferences: null,
         isEmailVerified: false,
       });
+      localStorage.removeItem("user");  // ✅ Çıkış yaparken localStorage temizle
+      localStorage.removeItem("token");
     }
   },
 
   logout: async () => {
     try {
       await authService.logout();
-      set({ user: null, userPreferences: null, isEmailVerified: false, error: null });
     } catch (error: any) {
+      console.error("Çıkış işlemi başarısız:", error);
+    } finally {
       set({
-        error: "Çıkış yaparken hata oluştu.",
+        user: null,
+        userPreferences: null,
+        isEmailVerified: false,
+        error: null,
       });
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
     }
   },
 
@@ -113,7 +129,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ isLoading: false });
     } catch (error: any) {
       set({
-        error: error.response?.data?.message || error.message || "Şifre sıfırlama başarısız.",
+        error: "Şifre sıfırlama isteği başarısız.",
         isLoading: false,
       });
     }
@@ -126,7 +142,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ isLoading: false });
     } catch (error: any) {
       set({
-        error: error.response?.data?.message || error.message || "Şifre sıfırlama başarısız.",
+        error: "Şifre sıfırlama başarısız.",
         isLoading: false,
       });
     }

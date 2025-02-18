@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,16 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (!isOpen) {
+      // Modal kapandığında formu sıfırla
+      setEmail("");
+      setMessage("");
+      setError("");
+      setLoading(false);
+    }
+  }, [isOpen]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
@@ -30,9 +40,9 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
 
     try {
       const response = await authService.requestPasswordReset(email);
-      setMessage(response.message || "Şifre sıfırlama bağlantısı gönderildi!");
+      setMessage(response.message || "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi!");
     } catch (err: any) {
-      setError(err.response?.data?.message || "Şifre sıfırlama başarısız.");
+      setError(err.response?.data?.message || "Şifre sıfırlama başarısız. Lütfen tekrar deneyin.");
     } finally {
       setLoading(false);
     }
@@ -51,10 +61,15 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            aria-label="E-posta adresinizi girin"
           />
-          {message && <p className="text-green-500">{message}</p>}
-          {error && <p className="text-red-500">{error}</p>}
-          <Button type="submit" className="w-full" disabled={loading}>
+          {message && <p className="text-green-500 text-center">{message}</p>}
+          {error && <p className="text-red-500 text-center">{error}</p>}
+          <Button 
+            type="submit" 
+            className="w-full"
+            disabled={loading || !email.trim()} // Eğer email boşsa butonu disable et
+          >
             {loading ? "Gönderiliyor..." : "Sıfırlama Bağlantısını Gönder"}
           </Button>
         </form>

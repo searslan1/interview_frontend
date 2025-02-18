@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import ForgotPasswordModal from "./ForgotPasswordModal"; // ✅ Yeni modal import edildi
+import ForgotPasswordModal from "./ForgotPasswordModal";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -27,7 +27,24 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSwitchToRegist
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false); // ✅ Şifre sıfırlama modalı için state
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+
+  // Formu sıfırla
+  useEffect(() => {
+    if (!isOpen) {
+      setEmail("");
+      setPassword("");
+      setLocalError(null);
+    }
+  }, [isOpen]);
+
+  // Giriş başarılı olursa yönlendir
+  useEffect(() => {
+    if (user) {
+      onClose();
+      router.replace("/dashboard");
+    }
+  }, [user, router, onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,16 +55,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSwitchToRegist
     setLocalError(null);
     await login(email, password);
   };
-
-  // Kullanıcı giriş yaptıysa yönlendir ve modalı kapat.
-  useEffect(() => {
-    if (user) {
-      setEmail("");
-      setPassword("");
-      onClose();
-      router.push("/dashboard");
-    }
-  }, [user, router, onClose]);
 
   return (
     <>
@@ -63,6 +70,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSwitchToRegist
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              aria-label="E-posta adresinizi girin"
             />
             <div className="relative">
               <Input
@@ -72,11 +80,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSwitchToRegist
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
+                aria-label="Şifrenizi girin"
               />
               <button
                 type="button"
                 className="absolute right-3 top-2 text-gray-500"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -91,7 +101,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSwitchToRegist
           </Button>
           <Button
             variant="link"
-            onClick={() => setIsForgotPasswordOpen(true)} // ✅ Şifremi unuttum modalını aç
+            onClick={() => setIsForgotPasswordOpen(true)}
             className="w-full mt-2 text-blue-500"
           >
             Şifremi Unuttum
@@ -99,7 +109,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSwitchToRegist
         </DialogContent>
       </Dialog>
 
-      {/* ✅ Şifre sıfırlama modalı */}
+      {/* Şifre sıfırlama modalı */}
       <ForgotPasswordModal
         isOpen={isForgotPasswordOpen}
         onClose={() => setIsForgotPasswordOpen(false)}

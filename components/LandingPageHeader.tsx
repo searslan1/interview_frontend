@@ -1,9 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import type React from "react" // Added import for React
 
 interface LandingPageHeaderProps {
   onStartClick: () => void
@@ -12,14 +11,15 @@ interface LandingPageHeaderProps {
 const LandingPageHeader: React.FC<LandingPageHeaderProps> = ({ onStartClick }) => {
   const [isScrolled, setIsScrolled] = useState(false)
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10)
-    }
+  // Scroll event listener'ını optimize et
+  const handleScroll = useCallback(() => {
+    setIsScrolled(window.scrollY > 10)
+  }, [])
 
+  useEffect(() => {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+  }, [handleScroll])
 
   const scrollToSection = (sectionId: string) => {
     const section = document.getElementById(sectionId)
@@ -39,13 +39,17 @@ const LandingPageHeader: React.FC<LandingPageHeaderProps> = ({ onStartClick }) =
     >
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
+          {/* Logo */}
           <div className="text-2xl font-bold">Mülakat Yönetim Platformu</div>
+
+          {/* Navigasyon */}
           <nav>
-            <ul className="flex space-x-6">
+            <ul className="hidden md:flex space-x-6">
               <li>
                 <button
                   onClick={() => scrollToSection("features")}
                   className="hover:text-modern-teal transition-colors duration-300"
+                  aria-label="Özellikler"
                 >
                   Özellikler
                 </button>
@@ -54,6 +58,7 @@ const LandingPageHeader: React.FC<LandingPageHeaderProps> = ({ onStartClick }) =
                 <button
                   onClick={() => scrollToSection("testimonials")}
                   className="hover:text-modern-teal transition-colors duration-300"
+                  aria-label="Müşteri Görüşleri"
                 >
                   Müşteri Görüşleri
                 </button>
@@ -62,6 +67,7 @@ const LandingPageHeader: React.FC<LandingPageHeaderProps> = ({ onStartClick }) =
                 <button
                   onClick={() => scrollToSection("faq")}
                   className="hover:text-modern-teal transition-colors duration-300"
+                  aria-label="Sıkça Sorulan Sorular"
                 >
                   SSS
                 </button>
@@ -69,15 +75,25 @@ const LandingPageHeader: React.FC<LandingPageHeaderProps> = ({ onStartClick }) =
               <li>
                 <Button
                   onClick={onStartClick}
-                  className={`bg-modern-teal hover:bg-modern-teal/80 text-white transition-colors duration-300 ${
-                    isScrolled ? "hover:text-white" : ""
-                  }`}
+                  className="bg-modern-teal hover:bg-modern-teal/80 text-white transition-colors duration-300"
+                  aria-label="Ücretsiz Dene"
                 >
                   Ücretsiz Dene
                 </Button>
               </li>
             </ul>
           </nav>
+
+          {/* Mobil Menü */}
+          <div className="md:hidden">
+            <button
+              onClick={() => scrollToSection("features")}
+              className="p-2 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-white"
+              aria-label="Menüyü Aç"
+            >
+              ☰
+            </button>
+          </div>
         </div>
       </div>
     </motion.header>
@@ -85,4 +101,3 @@ const LandingPageHeader: React.FC<LandingPageHeaderProps> = ({ onStartClick }) =
 }
 
 export default LandingPageHeader
-

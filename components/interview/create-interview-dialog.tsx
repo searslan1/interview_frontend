@@ -1,89 +1,71 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { InterviewGeneralInfo } from "./InterviewGeneralInfo"
-import { AIQuestionCreation } from "./AIQuestionCreation"
-import { EvaluationSettings } from "./EvaluationSettings"
-import { PublishSettings } from "./PublishSettings"
-import { InterviewPreview } from "./InterviewPreview"
-
-const interviewSchema = z.object({
-  title: z.string().min(2, "Mülakat adı en az 2 karakter olmalıdır."),
-  description: z.string().min(10, "Açıklama en az 10 karakter olmalıdır."),
-  type: z.enum(["technical", "softSkills", "behavioral", "personality", "video", "live"]),
-  startDate: z.date(),
-  endDate: z.date(),
-  hasPersonalityTest: z.boolean(),
-  logo: z.any().optional(),
-  questions: z.array(
-    z.object({
-      id: z.string(),
-      text: z.string(),
-      type: z.enum(["text", "video", "multipleChoice"]),
-      duration: z.number(),
-      expectedAnswer: z.string().optional(),
-      keywords: z.array(z.string()),
-    }),
-  ),
-  aiEvaluation: z.object({
-    useAutomaticScoring: z.boolean(),
-    gestureAnalysis: z.boolean(),
-    speechAnalysis: z.boolean(),
-    eyeContactAnalysis: z.boolean(),
-    tonalAnalysis: z.boolean(),
-  }),
-  accessSettings: z.object({
-    status: z.enum(["draft", "published"]),
-    visibleTo: z.array(z.string()),
-    linkedPosition: z.string().optional(),
-  }),
-})
-
-type InterviewFormData = z.infer<typeof interviewSchema>
+import { useState } from "react";
+import { useInterviewStore } from "@/store/interviewStore";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { InterviewGeneralInfo } from "./InterviewGeneralInfo";
+import { AIQuestionCreation } from "./AIQuestionCreation";
+import { EvaluationSettings } from "./EvaluationSettings";
+import { PublishSettings } from "./PublishSettings";
+import { InterviewPreview } from "./InterviewPreview";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { createInterviewSchema, CreateInterviewDTO } from "@/types/createInterviewDTO";
+import { InterviewStatus } from "@/types/interview";
 
 interface CreateInterviewDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 export function CreateInterviewDialog({ open, onOpenChange }: CreateInterviewDialogProps) {
-  const [activeTab, setActiveTab] = useState("general")
+  const [activeTab, setActiveTab] = useState("general");
+  const [loading, setLoading] = useState(false);
+  const { createInterview } = useInterviewStore();
 
-  const form = useForm<InterviewFormData>({
-    resolver: zodResolver(interviewSchema),
+  const form = useForm<CreateInterviewDTO>({
+    resolver: zodResolver(createInterviewSchema),
     defaultValues: {
       title: "",
       description: "",
-      type: "technical",
-      startDate: new Date(),
-      endDate: new Date(),
-      hasPersonalityTest: false,
+      expirationDate: new Date().toISOString(), // ✅ Backend uyumu sağlandı (ISO format)
+      personalityTestId: undefined,
+      status: InterviewStatus.DRAFT, // ✅ Enum kullanıldı
+      stages: {
+        personalityTest: false,
+        questionnaire: true,
+      },
       questions: [],
-      aiEvaluation: {
-        useAutomaticScoring: true,
-        gestureAnalysis: false,
-        speechAnalysis: false,
-        eyeContactAnalysis: false,
-        tonalAnalysis: false,
-      },
-      accessSettings: {
-        status: "draft",
-        visibleTo: [],
-      },
     },
-  })
+  });
 
-  const onSubmit = async (data: InterviewFormData) => {
-    console.log("Submitting interview data:", data)
-    // Here you would typically send the data to your API
-    onOpenChange(false)
-  }
+  const onSubmit = async (data: CreateInterviewDTO) => {
+    setLoading(true);
+    try {
+      const formattedData: CreateInterviewDTO = {
+        ...data,
+        expirationDate: new Date(data.expirationDate).toISOString(),
+        questions: data.questions.map(({ _id, ...rest }) => rest),
+      };
+  
+      await createInterview(formattedData);
+  
+      // ✅ Modal'ın hemen kapanmasını engelleyerek hata olasılığını azaltıyoruz
+      setTimeout(() => onOpenChange(false), 100); 
+    } catch (error) {
+      console.error("Interview creation error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+
+  
+  
+  
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -124,25 +106,26 @@ export function CreateInterviewDialog({ open, onOpenChange }: CreateInterviewDia
           <div className="space-x-2">
             <Button
               variant="outline"
+              disabled={loading}
               onClick={() =>
                 form.handleSubmit((data) =>
-                  onSubmit({ ...data, accessSettings: { ...data.accessSettings, status: "draft" } }),
+                  onSubmit({ ...data, status: InterviewStatus.DRAFT })
                 )()
               }
             >
-              Taslak Olarak Kaydet
+              {loading ? <LoadingSpinner /> : "Taslak Olarak Kaydet"}
             </Button>
             <Button
+              disabled={loading}
               onClick={form.handleSubmit((data) =>
-                onSubmit({ ...data, accessSettings: { ...data.accessSettings, status: "published" } }),
+                onSubmit({ ...data, status: InterviewStatus.PUBLISHED })
               )}
             >
-              Yayınla
+              {loading ? <LoadingSpinner /> : "Yayınla"}
             </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
-

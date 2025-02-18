@@ -1,64 +1,74 @@
-"use client"
+"use client";
 
-
-import type { UseFormReturn } from "react-hook-form"
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd"
+import type { UseFormReturn } from "react-hook-form";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 interface AIQuestionCreationProps {
-  form: UseFormReturn<any>
+  form: UseFormReturn<any>;
 }
 
 export function AIQuestionCreation({ form }: AIQuestionCreationProps) {
-  const questions = form.watch("questions")
-  const [aiQuestionCount, setAiQuestionCount] = useState(3)
+  const questions = form.watch("questions");
+  const [aiQuestionCount, setAiQuestionCount] = useState(3);
 
   const addQuestion = () => {
     const newQuestion = {
-      id: `question-${Date.now()}`,
-      text: "",
-      type: "text",
-      duration: 60,
+      _id: undefined, // ✅ Backend modeline uygun hale getirildi
+      questionText: "",
       expectedAnswer: "",
+      explanation: "",
       keywords: [],
-    }
-    form.setValue("questions", [...questions, newQuestion])
-  }
+      order: questions.length + 1,
+      duration: 60,
+      aiMetadata: {
+        complexityLevel: "medium",
+        requiredSkills: [],
+        keywordMatchScore: 0,
+      },
+    };
+    form.setValue("questions", [...questions, newQuestion]);
+  };
 
   const removeQuestion = (index: number) => {
-    const updatedQuestions = [...questions]
-    updatedQuestions.splice(index, 1)
-    form.setValue("questions", updatedQuestions)
-  }
+    const updatedQuestions = [...questions];
+    updatedQuestions.splice(index, 1);
+    form.setValue("questions", updatedQuestions);
+  };
 
   const generateAIQuestions = async () => {
     // Simulated AI question generation
     const aiQuestions = Array.from({ length: aiQuestionCount }, (_, index) => ({
-      id: `ai-question-${Date.now()}-${index}`,
-      text: `AI tarafından oluşturulan örnek soru ${index + 1}`,
-      type: "text",
-      duration: 120,
+      _id: undefined, // AI tarafından oluşturulan sorular da `_id` taşımayacak
+      questionText: `AI tarafından oluşturulan örnek soru ${index + 1}`,
       expectedAnswer: "AI tarafından oluşturulan örnek beklenen cevap.",
+      explanation: "",
       keywords: ["anahtar", "kelime", `${index + 1}`],
-    }))
-    form.setValue("questions", [...questions, ...aiQuestions])
-  }
+      order: questions.length + index + 1,
+      duration: 120,
+      aiMetadata: {
+        complexityLevel: "medium",
+        requiredSkills: ["AI-generated"],
+        keywordMatchScore: 0,
+      },
+    }));
+    form.setValue("questions", [...questions, ...aiQuestions]);
+  };
 
   const onDragEnd = (result: any) => {
-    if (!result.destination) return
+    if (!result.destination) return;
 
-    const items = Array.from(questions)
-    const [reorderedItem] = items.splice(result.source.index, 1)
-    items.splice(result.destination.index, 0, reorderedItem)
+    const items = Array.from(questions);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
 
-    form.setValue("questions", items)
-  }
+    form.setValue("questions", items);
+  };
 
   return (
     <Card>
@@ -87,7 +97,7 @@ export function AIQuestionCreation({ form }: AIQuestionCreationProps) {
             {(provided) => (
               <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
                 {questions.map((question: any, index: number) => (
-                  <Draggable key={question.id} draggableId={question.id} index={index}>
+                  <Draggable key={index} draggableId={`question-${index}`} index={index}>
                     {(provided) => (
                       <div
                         ref={provided.innerRef}
@@ -98,48 +108,26 @@ export function AIQuestionCreation({ form }: AIQuestionCreationProps) {
                         <Label htmlFor={`question-${index}`}>Soru {index + 1}</Label>
                         <Textarea
                           id={`question-${index}`}
-                          value={question.text}
+                          value={question.questionText}
                           onChange={(e) => {
-                            const updatedQuestions = [...questions]
-                            updatedQuestions[index].text = e.target.value
-                            form.setValue("questions", updatedQuestions)
+                            const updatedQuestions = [...questions];
+                            updatedQuestions[index].questionText = e.target.value;
+                            form.setValue("questions", updatedQuestions);
                           }}
                           className="mt-1 mb-2"
                         />
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label htmlFor={`question-${index}-type`}>Soru Tipi</Label>
-                            <Select
-                              value={question.type}
-                              onValueChange={(value) => {
-                                const updatedQuestions = [...questions]
-                                updatedQuestions[index].type = value
-                                form.setValue("questions", updatedQuestions)
-                              }}
-                            >
-                              <SelectTrigger id={`question-${index}-type`}>
-                                <SelectValue placeholder="Soru tipi seçin" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="text">Metin</SelectItem>
-                                <SelectItem value="video">Video</SelectItem>
-                                <SelectItem value="multipleChoice">Çoktan Seçmeli</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label htmlFor={`question-${index}-duration`}>Süre (saniye)</Label>
-                            <Input
-                              id={`question-${index}-duration`}
-                              type="number"
-                              value={question.duration}
-                              onChange={(e) => {
-                                const updatedQuestions = [...questions]
-                                updatedQuestions[index].duration = Number(e.target.value)
-                                form.setValue("questions", updatedQuestions)
-                              }}
-                            />
-                          </div>
+                        <div>
+                          <Label htmlFor={`question-${index}-duration`}>Süre (saniye)</Label>
+                          <Input
+                            id={`question-${index}-duration`}
+                            type="number"
+                            value={question.duration}
+                            onChange={(e) => {
+                              const updatedQuestions = [...questions];
+                              updatedQuestions[index].duration = Number(e.target.value);
+                              form.setValue("questions", updatedQuestions);
+                            }}
+                          />
                         </div>
                         <div className="mt-2">
                           <Label htmlFor={`question-${index}-expected-answer`}>Beklenen Cevap</Label>
@@ -147,9 +135,9 @@ export function AIQuestionCreation({ form }: AIQuestionCreationProps) {
                             id={`question-${index}-expected-answer`}
                             value={question.expectedAnswer}
                             onChange={(e) => {
-                              const updatedQuestions = [...questions]
-                              updatedQuestions[index].expectedAnswer = e.target.value
-                              form.setValue("questions", updatedQuestions)
+                              const updatedQuestions = [...questions];
+                              updatedQuestions[index].expectedAnswer = e.target.value;
+                              form.setValue("questions", updatedQuestions);
                             }}
                             className="mt-1"
                           />
@@ -160,9 +148,9 @@ export function AIQuestionCreation({ form }: AIQuestionCreationProps) {
                             id={`question-${index}-keywords`}
                             value={question.keywords.join(", ")}
                             onChange={(e) => {
-                              const updatedQuestions = [...questions]
-                              updatedQuestions[index].keywords = e.target.value.split(",").map((k) => k.trim())
-                              form.setValue("questions", updatedQuestions)
+                              const updatedQuestions = [...questions];
+                              updatedQuestions[index].keywords = e.target.value.split(",").map((k) => k.trim());
+                              form.setValue("questions", updatedQuestions);
                             }}
                             className="mt-1"
                           />
@@ -181,6 +169,5 @@ export function AIQuestionCreation({ form }: AIQuestionCreationProps) {
         </DragDropContext>
       </CardContent>
     </Card>
-  )
+  );
 }
-
