@@ -1,30 +1,11 @@
-import "../globals.css"
-import { Inter } from "next/font/google"
-import type { Metadata } from "next"
-import { Toaster } from "@/components/ui/toaster"
-import { ThemeProvider } from "@/components/theme-provider"
-import ClientQueryProvider from "@/components/ClientQueryProvider"
-import type React from "react"
+"use client";
 
-const inter = Inter({ subsets: ["latin"] })
+import { ReactNode } from "react";
 
-export const metadata: Metadata = {
-  title: "İK Yönetim Paneli",
-  description: "İnsan Kaynakları Yönetim Paneli",
-  generator: 'SEAİ'
-}
-
-export default function PublicLayout({ children }: { children: React.ReactNode }) {
+export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="tr">
-      <body className={inter.className}>
-        <ClientQueryProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-            {children}
-            <Toaster />
-          </ThemeProvider>
-        </ClientQueryProvider>
-      </body>
-    </html>
-  )
+    <main className="flex min-h-screen items-center justify-center bg-gray-100">
+      <div className="w-full max-w-md bg-white p-6 rounded-lg shadow-md">{children}</div>
+    </main>
+  );
 }

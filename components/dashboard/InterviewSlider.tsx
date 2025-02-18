@@ -11,11 +11,11 @@ import type { Interview } from "@/types/interview";
 export function InterviewSlider() {
   const [startIndex, setStartIndex] = useState(0);
   const sliderRef = useRef<HTMLDivElement>(null);
-  const { interviews, fetchAllInterviews } = useInterviewStore(); // ✅ API'den veri çekiyoruz
+  const { interviews, fetchInterviews } = useInterviewStore(); // ✅ API'den veri çekiyoruz
 
   useEffect(() => {
-    fetchAllInterviews();
-  }, [fetchAllInterviews]);
+    fetchInterviews();
+  }, [fetchInterviews]);
 
   const nextSlide = () => {
     if (startIndex < interviews.length - 3) {
@@ -43,7 +43,7 @@ export function InterviewSlider() {
             style={{ transform: `translateX(-${startIndex * 33.33}%)` }}
           >
             {interviews.map((interview: Interview) => (
-              <Card key={interview.id} className="flex-shrink-0 w-1/3 mr-4 bg-white shadow-md">
+              <Card key={interview._id} className="flex-shrink-0 w-1/3 mr-4 bg-white shadow-md">
                 <CardContent className="p-4">
                   <h3 className="font-semibold mb-2 text-foreground">{interview.title}</h3>
                   <div className="flex justify-between items-center mb-2">

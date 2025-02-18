@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { ApplicationList } from "@/components/interview/ApplicationList";
+import { ApplicationList } from "@/components/applications/ApplicationList";
 import { AdvancedFilters } from "@/components/applications/advanced-filters";
 import { Header } from "@/components/Header";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";

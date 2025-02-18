@@ -9,40 +9,41 @@ import RegisterModal from "@/components/RegisterModal";
 import LandingPageHeader from "@/components/LandingPageHeader";
 import { ChevronDown } from "lucide-react";
 import Image from "next/image";
-import { useAuthStore } from "@/store/authStore";
+import { useAuth } from "@/hooks/useAuth";
+import "./globals.css";
 
 export default function LandingPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isLoading } = useAuth(); // ✅ `useAuth` kullanıldı.
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState<number>(0);
 
   useEffect(() => {
-    if (user) {
-      router.push("/dashboard"); // Kullanıcı giriş yaptıysa yönlendir
+    if (!isLoading && user) {
+      setIsLoginModalOpen(false);
+      setIsRegisterModalOpen(false);
+      router.replace("/dashboard");
     }
-  }, [user, router]);
+  }, [user, isLoading, router]);
 
   const handleStart = () => {
     setIsLoginModalOpen(true);
   };
 
-  // Login modal içerisindeki "Hesap oluştur" butonuna tıklanınca register modalı açılır.
   const handleSwitchToRegister = () => {
     setIsLoginModalOpen(false);
     setIsRegisterModalOpen(true);
   };
 
-  // Register modal içerisindeki "Giriş yap" butonuna tıklanınca login modalı açılır.
   const handleSwitchToLogin = () => {
     setIsRegisterModalOpen(false);
     setIsLoginModalOpen(true);
   };
 
-  // Register başarılı olduğunda doğrulama sayfasına yönlendir
   const handleRegisterSuccess = () => {
+    setIsRegisterModalOpen(false);
     router.push("/verify-email");
   };
 
@@ -50,8 +51,7 @@ export default function LandingPage() {
     {
       image: "/hero-1.jpg",
       title: "Mülakat Süreçlerinizi Dönüştürün",
-      description:
-        "Yapay zeka destekli mülakat yönetimi ile işe alım süreçlerinizi optimize edin",
+      description: "Yapay zeka destekli mülakat yönetimi ile işe alım süreçlerinizi optimize edin",
     },
     {
       image: "/hero-2.jpg",
@@ -61,8 +61,7 @@ export default function LandingPage() {
     {
       image: "/hero-3.jpg",
       title: "Verimli İşe Alım Süreci",
-      description:
-        "Zaman ve kaynaklarınızı etkin kullanarak doğru adayları bulun",
+      description: "Zaman ve kaynaklarınızı etkin kullanarak doğru adayları bulun",
     },
   ];
 
@@ -71,7 +70,7 @@ export default function LandingPage() {
       setCurrentSlide((prevSlide: number) => (prevSlide + 1) % slides.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, [slides.length]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-primary text-white">
@@ -79,7 +78,7 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative h-screen">
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {slides.map(
             (slide, index) =>
               index === currentSlide && (
@@ -92,10 +91,11 @@ export default function LandingPage() {
                   className="absolute inset-0"
                 >
                   <Image
-                    src={slide.image || "/placeholder.svg"}
+                    src={slide.image}
                     alt={slide.title}
                     layout="fill"
                     objectFit="cover"
+                    priority // 🚀 Performans için önemli
                   />
                   <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                     <div className="text-center max-w-4xl px-4">
@@ -148,7 +148,7 @@ export default function LandingPage() {
         isOpen={isRegisterModalOpen}
         onClose={() => setIsRegisterModalOpen(false)}
         onSwitchToLogin={handleSwitchToLogin}
-        onRegisterSuccess={handleRegisterSuccess} // ✅ Doğrulama sayfasına yönlendir
+        onRegisterSuccess={handleRegisterSuccess}
       />
     </div>
   );

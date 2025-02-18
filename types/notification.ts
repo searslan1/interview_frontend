@@ -14,4 +14,5 @@ export interface Notification {
   read: boolean;
   readAt?: string;
   actionUrl?: string;
+  time: string;
 }

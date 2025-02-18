@@ -1,41 +1,39 @@
-// hooks/useAuth.tsx
 import { useAuthStore } from "@/store/authStore";
 import { useEffect } from "react";
 
 export const useAuth = () => {
-  const { 
-    user, 
-    isLoading, 
-    error, 
-    isEmailVerified, 
-    login, 
-    register, 
-    verifyEmail, 
-    refreshToken, 
-    logout, 
-    requestPasswordReset, 
-    resetPassword
+  const {
+    user,
+    isLoading,
+    error,
+    isEmailVerified,
+    login,
+    register,
+    verifyEmail,
+    refreshToken,
+    logout,
+    requestPasswordReset,
+    resetPassword,
   } = useAuthStore();
 
-  // Sayfa yüklendiğinde refresh token çağrısı yap
   useEffect(() => {
     if (!user) {
-      refreshToken();
+      refreshToken().catch(() => {}); // ❌ Hata olursa kullanıcıyı atmasın, loglasın
     }
-  }, [user, refreshToken]);
+  }, []);
 
   return {
     user,
     isLoading,
     error,
     isEmailVerified,
-    isAuthenticated: !!user, // Kullanıcı oturum açık mı?
+    isAuthenticated: !!user,
     login,
     register,
     verifyEmail,
     refreshToken,
     logout,
-    requestPasswordReset, // ✅ Şifre sıfırlama isteği eklendi
-    resetPassword, // ✅ Şifre sıfırlama işlemi eklendi
+    requestPasswordReset,
+    resetPassword,
   };
 };

@@ -24,11 +24,8 @@ export const useProfileStore = create<ProfileState>((set) => ({
     try {
       const response = await profileService.getProfile();
       set({ user: response.data, isLoading: false });
-    } catch (error: any) {
-      set({
-        error: error.response?.data?.message || "Profil bilgileri alınamadı.",
-        isLoading: false,
-      });
+    } catch {
+      set({ error: "Profil yüklenemedi.", isLoading: false });
     }
   },
 

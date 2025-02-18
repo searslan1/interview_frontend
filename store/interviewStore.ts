@@ -1,175 +1,128 @@
-"use client";
-
 import { create } from "zustand";
-import { produce } from "immer";
-import { Interview } from "@/types/interview";
+import { interviewService } from "@/services/interviewService";
+import {
+  Interview,
+  CreateInterviewDTO,
+  UpdateInterviewDTO,
+  InterviewStoreState,
+  InterviewStoreActions,
+  InterviewQuestion,
+  InterviewStatus,
+} from "@/types/interview";
 
-interface InterviewStore {
-  interviews: Interview[];
-  currentInterview: Interview | null;
-  isLoading: boolean;
-  error: string | null;
-
-  fetchAllInterviews: () => Promise<void>;
-  fetchMyInterviews: () => Promise<void>;
-  fetchInterviewById: (id: string) => Promise<void>;
-  createInterview: (data: Partial<Interview>) => Promise<void>;
-  updateInterview: (id: string, updatedInterview: Partial<Interview>) => Promise<void>;
-  deleteInterview: (id: string) => Promise<void>;
-
-  updateQuestionOrder: (interviewId: string, questionId: string, newOrder: number) => void;
-  sortInterviews: (key: keyof Interview, order?: "asc" | "desc") => void;
-}
+interface InterviewStore extends InterviewStoreState, InterviewStoreActions {}
 
 export const useInterviewStore = create<InterviewStore>((set, get) => ({
+  // **State Tanımları**
   interviews: [],
-  currentInterview: null,
-  isLoading: false,
+  selectedInterview: null,
+  loading: false,
   error: null,
 
-  // ✅ Tüm mülakatları getir (Admin yetkisi gerektirir)
-  fetchAllInterviews: async () => {
-    set({ isLoading: true, error: null });
+  /**
+   * Kullanıcının mülakat listesini API'dan çekme
+   */
+  fetchInterviews: async () => {
+    set({ loading: true, error: null });
     try {
-      const response = await fetch("/api/interview/all", { credentials: "include" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Mülakatlar alınamadı.");
-      
-      set({ interviews: data.data, isLoading: false });
+      const data = await interviewService.getUserInterviews();
+      set({ interviews: data, loading: false });
     } catch (error: any) {
-      set({ error: error.message, isLoading: false });
+      set({ error: error.message, loading: false });
     }
   },
 
-  // ✅ Kullanıcının mülakatlarını getir
-  fetchMyInterviews: async () => {
-    set({ isLoading: true, error: null });
+  /**
+   * Belirli bir mülakatı ID ile API'dan getirme
+   */
+  getInterviewById: async (id: string) => {
+    set({ loading: true, error: null });
     try {
-      const response = await fetch("/api/interview/my", { credentials: "include" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Kendi mülakatlarını alma başarısız.");
-
-      set({ interviews: data.data, isLoading: false });
+      const data = await interviewService.getInterviewById(id);
+      set({ selectedInterview: data, loading: false });
     } catch (error: any) {
-      set({ error: error.message, isLoading: false });
+      set({ error: error.message, loading: false });
     }
   },
 
-  // ✅ Belirli bir mülakatı getir
-  fetchInterviewById: async (id) => {
-    set({ isLoading: true, error: null });
+  /**
+   * Yeni bir mülakat oluşturma
+   */
+  createInterview: async (data: CreateInterviewDTO) => {
+    set({ loading: true, error: null });
     try {
-      const response = await fetch(`/api/interview/${id}`, { credentials: "include" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Mülakat bulunamadı.");
-
-      set({ currentInterview: data.data, isLoading: false });
+      await interviewService.createInterview(data);
+      await get().fetchInterviews(); // Yeni mülakat eklendiğinde listeyi güncelle
     } catch (error: any) {
-      set({ error: error.message, isLoading: false, currentInterview: null });
+      set({ error: error.message, loading: false });
     }
   },
 
-  // ✅ Yeni mülakat oluştur
-  createInterview: async (data) => {
-    set({ isLoading: true, error: null });
+  /**
+   * Mevcut bir mülakatı güncelleme
+   */
+  updateInterview: async (id: string, updateData: UpdateInterviewDTO) => {
+    set({ loading: true, error: null });
     try {
-      const response = await fetch("/api/interview/create", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      await interviewService.updateInterview(id, updateData);
+      await get().fetchInterviews();
+    } catch (error: any) {
+      set({ error: error.message, loading: false });
+    }
+  },
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || "Mülakat oluşturulamadı.");
-
+  /**
+   * Mülakatı silme
+   */
+  deleteInterview: async (id: string) => {
+    set({ loading: true, error: null });
+    try {
+      await interviewService.deleteInterview(id);
       set((state) => ({
-        interviews: [...state.interviews, result.data],
-        isLoading: false,
+        interviews: state.interviews.filter((interview) => interview._id !== id),
+        loading: false,
       }));
     } catch (error: any) {
-      set({ error: error.message, isLoading: false });
+      set({ error: error.message, loading: false });
     }
   },
 
-  // ✅ Mülakat güncelleme
-  updateInterview: async (id, updatedInterview) => {
-    set({ isLoading: true, error: null });
+  /**
+   * Mülakatın durumunu güncelleme
+   */
+  updateInterviewStatus: async (id: string, newStatus: InterviewStatus) => {
+    set({ loading: true, error: null });
     try {
-      const response = await fetch(`/api/interview/${id}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedInterview),
-      });
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || "Mülakat güncellenemedi.");
-
-      set(produce((state: InterviewStore) => {
-        const index = state.interviews.findIndex((i) => i.id === id);
-        if (index !== -1) {
-          state.interviews[index] = { ...state.interviews[index], ...updatedInterview };
-        }
-      }));
+      await interviewService.updateInterviewStatus(id, newStatus);
+      await get().fetchInterviews();
     } catch (error: any) {
-      set({ error: error.message, isLoading: false });
+      set({ error: error.message, loading: false });
     }
   },
 
-  // ✅ Mülakat silme
-  deleteInterview: async (id) => {
-    set({ isLoading: true, error: null });
+  /**
+   * Mülakatın sorularını güncelleme
+   */
+  updateInterviewQuestions: async (id: string, questions: InterviewQuestion[]) => {
+    set({ loading: true, error: null });
     try {
-      const response = await fetch(`/api/interview/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || "Mülakat silinemedi.");
-
-      set(produce((state: InterviewStore) => {
-        state.interviews = state.interviews.filter((interview) => interview.id !== id);
-      }));
+      await interviewService.updateInterviewQuestions(id, questions);
+      await get().fetchInterviews();
     } catch (error: any) {
-      set({ error: error.message, isLoading: false });
+      set({ error: error.message, loading: false });
     }
   },
 
-  // ✅ Mülakat içindeki soruların sırasını güncelle
-  updateQuestionOrder: (interviewId, questionId, newOrder) => {
-    set(produce((state: InterviewStore) => {
-      const interview = state.interviews.find((i) => i.id === interviewId);
-      if (!interview) return;
-      
-      const questionIndex = interview.questions.findIndex((q) => q.id === questionId);
-      if (questionIndex === -1) return;
-
-      const [movedQuestion] = interview.questions.splice(questionIndex, 1);
-      interview.questions.splice(newOrder - 1, 0, movedQuestion);
-
-      interview.questions.forEach((q, index) => {
-        q.order = index + 1;
-      });
-    }));
+  /**
+   * Mülakata kişilik testi ID'si ekleme
+   */
+  updatePersonalityTest: async (id: string, personalityTestId: string) => {
+    set({ loading: true, error: null });
+    try {
+      await interviewService.updatePersonalityTest(id, personalityTestId);
+      await get().fetchInterviews();
+    } catch (error: any) {
+      set({ error: error.message, loading: false });
+    }
   },
-
-  // ✅ Mülakatları belirli bir kritere göre sırala
-  sortInterviews: (key, order = "asc") => {
-    set(produce((state: InterviewStore) => {
-      state.interviews.sort((a, b) => {
-        const valueA = a[key];
-        const valueB = b[key];
-
-        if (typeof valueA === "string" && typeof valueB === "string") {
-          return order === "asc" ? valueA.localeCompare(valueB) : valueB.localeCompare(valueA);
-        }
-        if (typeof valueA === "number" && typeof valueB === "number") {
-          return order === "asc" ? valueA - valueB : valueB - valueA;
-        }
-        return 0;
-      });
-    }));
-  }
 }));

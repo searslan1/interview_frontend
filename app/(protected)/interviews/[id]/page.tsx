@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useInterviewStore } from "@/store/interviewStore";
 import { InterviewDetails } from "@/components/interview/InterviewDetails";
-import { ApplicationList } from "@/components/interview/ApplicationList";
+import { ApplicationList } from "@/components/applications/ApplicationList";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useApplicationStore } from "@/store/application-store";
 
