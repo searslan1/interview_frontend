@@ -25,10 +25,11 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
   fetchInterviews: async () => {
     set({ loading: true, error: null });
     try {
-      const data = await interviewService.getUserInterviews();
-      set({ interviews: data, loading: false });
+      const userInterviews = await interviewService.getUserInterviews();
+      set({ interviews: userInterviews, loading: false });
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      console.error("Mülakatları çekerken hata oluştu:", error);
+      set({ error: error.message || "Mülakatlar yüklenirken hata oluştu", loading: false });
     }
   },
 
@@ -36,27 +37,36 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
    * Belirli bir mülakatı ID ile API'dan getirme
    */
   getInterviewById: async (id: string) => {
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, selectedInterview: null }); // ✅ Önce state sıfırlanıyor
     try {
       const data = await interviewService.getInterviewById(id);
       set({ selectedInterview: data, loading: false });
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      console.error("Mülakat getirme hatası:", error.message);
+      set({ error: error.message, selectedInterview: null, loading: false });
     }
   },
 
-  /**
+/**
    * Yeni bir mülakat oluşturma
    */
-  createInterview: async (data: CreateInterviewDTO) => {
-    set({ loading: true, error: null });
-    try {
-      await interviewService.createInterview(data);
-      await get().fetchInterviews(); // Yeni mülakat eklendiğinde listeyi güncelle
-    } catch (error: any) {
-      set({ error: error.message, loading: false });
-    }
-  },
+createInterview: async (data: CreateInterviewDTO): Promise<void> => {
+  set({ loading: true, error: null });
+  try {
+    const newInterview = await interviewService.createInterview(data);
+    
+    // **State Güncelleme**
+    set((state) => ({
+      interviews: [...state.interviews, newInterview], // Yeni mülakatı listeye ekle
+      loading: false,
+    }));
+
+  } catch (error: any) {
+    set({ error: error.response?.data?.message || "Mülakat oluşturulurken hata oluştu", loading: false });
+  }
+},
+
+
 
   /**
    * Mevcut bir mülakatı güncelleme
@@ -64,12 +74,18 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
   updateInterview: async (id: string, updateData: UpdateInterviewDTO) => {
     set({ loading: true, error: null });
     try {
-      await interviewService.updateInterview(id, updateData);
+      const formattedData = {
+        ...updateData,
+        stages: updateData.stages ?? { personalityTest: false, questionnaire: false }, // ✅ Varsayılan değerler eklendi
+      };
+  
+      await interviewService.updateInterview(id, formattedData);
       await get().fetchInterviews();
     } catch (error: any) {
       set({ error: error.message, loading: false });
     }
   },
+  
 
   /**
    * Mülakatı silme

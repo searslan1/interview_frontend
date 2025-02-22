@@ -30,10 +30,9 @@ export function CreateInterviewDialog({ open, onOpenChange }: CreateInterviewDia
     resolver: zodResolver(createInterviewSchema),
     defaultValues: {
       title: "",
-      description: "",
-      expirationDate: new Date().toISOString(), // ✅ Backend uyumu sağlandı (ISO format)
+      expirationDate: new Date().toISOString(), // ✅ Backend için uygun ISO format
       personalityTestId: undefined,
-      status: InterviewStatus.DRAFT, // ✅ Enum kullanıldı
+      status: InterviewStatus.DRAFT, // Varsayılan olarak "Taslak"
       stages: {
         personalityTest: false,
         questionnaire: true,
@@ -42,30 +41,35 @@ export function CreateInterviewDialog({ open, onOpenChange }: CreateInterviewDia
     },
   });
 
-  const onSubmit = async (data: CreateInterviewDTO) => {
+  /**
+   * ✅ Mülakat oluşturma işlemini API'ye gönderen fonksiyon
+   */
+  const handleCreateInterview = async (status: InterviewStatus) => {
     setLoading(true);
     try {
+      const data = form.getValues();
+
       const formattedData: CreateInterviewDTO = {
         ...data,
+        status, // ✅ Gelen parametreye göre taslak veya yayın durumu belirleniyor
         expirationDate: new Date(data.expirationDate).toISOString(),
-        questions: data.questions.map(({ _id, ...rest }) => rest),
+        questions: data.questions.map(({ _id, aiMetadata, ...rest }) => ({
+          ...rest,
+          aiMetadata: {
+            complexityLevel: aiMetadata.complexityLevel,
+            requiredSkills: aiMetadata.requiredSkills,
+          },
+        })),
       };
-  
+
       await createInterview(formattedData);
-  
-      // ✅ Modal'ın hemen kapanmasını engelleyerek hata olasılığını azaltıyoruz
-      setTimeout(() => onOpenChange(false), 100); 
+      setTimeout(() => onOpenChange(false), 100); // ✅ Modal kapatılıyor
     } catch (error) {
       console.error("Interview creation error:", error);
     } finally {
       setLoading(false);
     }
   };
-  
-
-  
-  
-  
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -104,22 +108,18 @@ export function CreateInterviewDialog({ open, onOpenChange }: CreateInterviewDia
             İptal
           </Button>
           <div className="space-x-2">
+            {/* ✅ Taslak olarak kaydetme butonu */}
             <Button
               variant="outline"
               disabled={loading}
-              onClick={() =>
-                form.handleSubmit((data) =>
-                  onSubmit({ ...data, status: InterviewStatus.DRAFT })
-                )()
-              }
+              onClick={() => handleCreateInterview(InterviewStatus.DRAFT)}
             >
               {loading ? <LoadingSpinner /> : "Taslak Olarak Kaydet"}
             </Button>
+            {/* ✅ Yayınla butonu */}
             <Button
               disabled={loading}
-              onClick={form.handleSubmit((data) =>
-                onSubmit({ ...data, status: InterviewStatus.PUBLISHED })
-              )}
+              onClick={() => handleCreateInterview(InterviewStatus.PUBLISHED)}
             >
               {loading ? <LoadingSpinner /> : "Yayınla"}
             </Button>

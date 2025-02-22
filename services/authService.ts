@@ -7,6 +7,15 @@ export const authService = {
     return response.data;
   },
 
+  async getCurrentUser() {
+    try {
+      const response = await api.get("/profile/me"); // ✅ Yeni endpoint'e yönlendirildi
+      return response.data.data; // ✅ Backend'den gelen kullanıcı bilgilerini al
+    } catch (error) {
+      return null;
+    }
+  },
+
   async register(userData: { name: string; email: string; password: string; phone?: string }) {
     try {
       const response = await api.post("/auth/register", userData);
@@ -21,10 +30,10 @@ export const authService = {
     return response.data;
   },
 
-  async refreshToken(storedToken: string) {
+  async refreshToken() {
     try {
-      const response = await api.get("/auth/refresh");
-      return response.data;
+      await api.get("/auth/refresh"); // ✅ Backend yeni token'ı cookie'ye yazacak
+      return await this.getCurrentUser(); // ✅ Kullanıcı bilgilerini tekrar al
     } catch (error) {
       throw new Error("Token yenileme başarısız. Tekrar giriş yapmalısınız.");
     }

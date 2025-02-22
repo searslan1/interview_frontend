@@ -1,29 +1,8 @@
+// types/interview.ts
 
-// type alanı kaldırıldı.
-export interface Interview {
-  type: any;
-  _id: string;
-  title: string;
-  expirationDate: string;
-  createdBy: {
-    userId: string;
-  };
-  status: InterviewStatus;
-  personalityTestId?: string; // Opsiyonel alan
-  stages: {
-    personalityTest: boolean;
-    questionnaire: boolean;
-  };
-  interviewLink: {
-    link: string;
-    expirationDate?: string;
-  };
-  questions: InterviewQuestion[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-
+/**
+ * Mülakat için her bir soru modeli
+ */
 export interface InterviewQuestion {
   _id?: string; // MongoDB ObjectId uyumlu hale getirildi
   questionText: string;
@@ -39,9 +18,36 @@ export interface InterviewQuestion {
   };
 }
 
+/**
+ * Mülakat modeli
+ */
+export interface Interview {
+  _id: string; // MongoDB ObjectId
+  title: string;
+  expirationDate: string; // ISO formatlı tarih
+  createdBy: {
+    userId: string;
+  };
+  status: InterviewStatus;
+  personalityTestId?: string;
+  stages: {
+    personalityTest: boolean;
+    questionnaire: boolean;
+  };
+  interviewLink?: {
+    link: string;
+    expirationDate?: string; // Backend Date olarak tutuyor ama frontend string olarak saklayacak
+  };
+  questions: InterviewQuestion[];
+  createdAt: string; // ISO tarih formatında saklanacak
+  updatedAt: string;
+}
 
+/**
+ * Mülakat başvurusu modeli
+ */
 export interface InterviewApplicant {
-  _id: string; // ObjectId uyumlu hale getirildi
+  _id: string;
   name: string;
   email: string;
   phone: string;
@@ -49,18 +55,23 @@ export interface InterviewApplicant {
   appliedAt: string;
 }
 
-
+/**
+ * Mülakat bildirim modeli
+ */
 export interface InterviewNotification {
-  _id: string; // ObjectId eklendi
-  userId: string; // Bildirimin hangi kullanıcı için olduğu eklendi
+  _id: string;
+  userId: string;
   type: "reminder" | "other";
   message: string;
   createdAt: string;
 }
 
+/**
+ * Mülakat sonucu modeli
+ */
 export interface InterviewResult {
-  _id: string; // ObjectId ekleyerek MongoDB ile uyumlu hale getirdik
-  interviewId: string; // Hangi mülakata ait olduğu eklendi
+  _id: string;
+  interviewId: string;
   candidateId: string;
   score: number;
   comments: string;
@@ -73,7 +84,7 @@ export interface InterviewResult {
  */
 export interface CreateInterviewDTO {
   title: string;
-  expirationDate: string | number; // ISO date string veya timestamp
+  expirationDate: string; // ISO formatlı tarih
   personalityTestId?: string;
   stages: {
     personalityTest: boolean;
@@ -93,12 +104,13 @@ export enum InterviewStatus {
   DRAFT = "draft",
   INACTIVE = "inactive"
 }
+
 /**
  * Mülakat güncelleme DTO'su
  */
 export interface UpdateInterviewDTO {
   title?: string;
-  expirationDate?: string | number;
+  expirationDate?: string;
   stages?: {
     personalityTest: boolean;
     questionnaire: boolean;
@@ -128,6 +140,7 @@ export interface UpdateInterviewQuestionsDTO {
 export interface UpdatePersonalityTestDTO {
   personalityTestId: string;
 }
+
 /**
  * Interview Store'un state tipi
  */

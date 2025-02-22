@@ -28,10 +28,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(protected)/interviews/page.js"
     ],
-    "/(protected)/candidates/page": [
+    "/(protected)/interviews/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(protected)/candidates/page.js"
+      "static/chunks/app/(protected)/interviews/[id]/page.js"
     ],
     "/(protected)/applications/page": [
       "static/chunks/webpack.js",
