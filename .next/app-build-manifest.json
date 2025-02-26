@@ -1,21 +1,9 @@
 {
   "pages": {
-    "/page": [
+    "/(protected)/candidates/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/css/app/page.css",
-      "static/chunks/app/page.js"
-    ],
-    "/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/layout.css",
-      "static/chunks/app/layout.js"
-    ],
-    "/(protected)/dashboard/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(protected)/dashboard/page.js"
+      "static/chunks/app/(protected)/candidates/page.js"
     ],
     "/(protected)/layout": [
       "static/chunks/webpack.js",
@@ -23,20 +11,17 @@
       "static/css/app/(protected)/layout.css",
       "static/chunks/app/(protected)/layout.js"
     ],
-    "/(protected)/interviews/page": [
+    "/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(protected)/interviews/page.js"
+      "static/css/app/layout.css",
+      "static/chunks/app/layout.js"
     ],
-    "/(protected)/interviews/[id]/page": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(protected)/interviews/[id]/page.js"
-    ],
-    "/(protected)/applications/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(protected)/applications/page.js"
+      "static/chunks/app/page.js",
+      "static/css/app/page.css"
     ],
     "/_not-found/page": [
       "static/chunks/webpack.js",

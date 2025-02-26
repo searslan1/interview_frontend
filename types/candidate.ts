@@ -1,37 +1,37 @@
-import type { Education, WorkExperience, Certification } from "./common"
-import type { InterviewResult } from "./interview"
-
-export interface Candidate {
-  id: string
-  name: string
-  email: string
-  phone: string
-  dateOfBirth: string
-  gender: string
-  nationality: string
-  status: "applied" | "interviewing" | "hired" | "rejected"
-  address: {
-    street: string
-    city: string
-    state: string
-    zip: string
-    country: string
-  }
-  currentPosition: string
-  appliedPosition: string
-  experience: number
-  education: Education[]
-  workExperience: WorkExperience[]
-  skills: string[]
-  languages: string[]
-  certifications: Certification[]
-  personalityType?: string
-  linkedInProfile?: string
-  github?: string
-  portfolio?: string
-  interviews: InterviewResult[];
-  resumeUrl: string
-  createdAt: string
-  updatedAt: string
+export interface CandidateEducation {
+  school: string;
+  degree: string;
+  graduationYear: number;
 }
 
+export interface CandidateExperience {
+  company: string;
+  position: string;
+  duration: string;
+  responsibilities?: string;
+}
+
+export interface CandidateSkills {
+  technical: string[];
+  personal: string[];
+  languages: string[];
+}
+
+export interface CandidateDocuments {
+  resume?: string;
+  certificates?: string[];
+  socialMediaLinks?: string[];
+}
+
+export interface Candidate {
+  name: string;
+  surname: string;
+  email: string;
+  phone: string;
+  phoneVerified: boolean;
+  kvkkConsent?: boolean;
+  education?: CandidateEducation[];
+  experience?: CandidateExperience[];
+  skills?: CandidateSkills;
+  documents?: CandidateDocuments;
+}
