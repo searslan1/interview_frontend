@@ -6,7 +6,7 @@ import { useInterviewStore } from "@/store/interviewStore";
 import { InterviewDetails } from "@/components/interview/InterviewDetails";
 import { ApplicationList } from "@/components/applications/ApplicationList";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { useApplicationStore } from "@/store/application-store";
+import { useApplicationStore } from "@/store/applicationStore";
 
 export default function InterviewDetailPage() {
   const params = useParams();
