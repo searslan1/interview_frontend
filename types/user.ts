@@ -17,6 +17,8 @@ export interface User {
   accountLockedUntil?: string;
   twoFactorEnabled: boolean;
   lastActiveAt?: string; // ✅ Kullanıcının en son aktif olduğu tarih
+  preferences?: UserPreference; // ✅ Eklenmiş hali
+
 
   // Profil Bilgileri
   profilePicture?: string;

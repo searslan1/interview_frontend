@@ -19,8 +19,11 @@ export function InterviewList({ interviews, filters }: InterviewListProps) {
       // **🔹 Statü Filtreleme**
       if (filters.status !== "all" && interview.status !== filters.status) return false;
 
-      // **🔹 Mülakat Türü Filtreleme (Backend'de type alanı olmadığı için `category` olarak varsayalım)**
-      if (filters.interviewType !== "all" && interview.title !== filters.interviewType) return false;
+      // **🔹 Mülakat Türü Filtreleme (Backend'de uygun bir alan var mı kontrol edilmeli)**
+      if (filters.interviewType !== "all") {
+        const interviewCategory = interview?.status || ""; // 🔹 Backend'de uygun alan varsa kullanılmalı
+        if (!interviewCategory.toLowerCase().includes(filters.interviewType.toLowerCase())) return false;
+      }
 
       // **🔹 Arama Filtreleme**
       if (
@@ -34,8 +37,8 @@ export function InterviewList({ interviews, filters }: InterviewListProps) {
     })
     .sort((a, b) => {
       // **🔹 Sıralama (Sort)**
-      const dateA = new Date(a.createdAt ?? "").getTime();
-      const dateB = new Date(b.createdAt ?? "").getTime();
+      const dateA = new Date(a.createdAt || 0).getTime(); // 🔹 createdAt boşsa 0 atanır
+      const dateB = new Date(b.createdAt || 0).getTime();
 
       return filters.sortBy === "newest" ? dateB - dateA : dateA - dateB;
     });
@@ -47,7 +50,7 @@ export function InterviewList({ interviews, filters }: InterviewListProps) {
           <InterviewCard key={interview._id} interview={interview} />
         ))
       ) : (
-        <p className="col-span-3 text-center">Eşleşen mülakat bulunamadı.</p>
+        <p className="col-span-3 text-center text-gray-500">Eşleşen mülakat bulunamadı.</p>
       )}
     </div>
   );
