@@ -1,15 +1,10 @@
 {
   "pages": {
-    "/(protected)/candidates/page": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(protected)/candidates/page.js"
-    ],
-    "/(protected)/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/(protected)/layout.css",
-      "static/chunks/app/(protected)/layout.js"
+      "static/css/app/page.css",
+      "static/chunks/app/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
@@ -17,11 +12,41 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/page": [
+    "/(protected)/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/page.js",
-      "static/css/app/page.css"
+      "static/chunks/app/(protected)/dashboard/page.js"
+    ],
+    "/(protected)/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/(protected)/layout.css",
+      "static/chunks/app/(protected)/layout.js"
+    ],
+    "/(protected)/applications/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(protected)/applications/page.js"
+    ],
+    "/(protected)/interviews/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(protected)/interviews/page.js"
+    ],
+    "/(protected)/candidates/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(protected)/candidates/page.js"
+    ],
+    "/(protected)/reports/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(protected)/reports/page.js"
+    ],
+    "/(protected)/interviews/[id]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(protected)/interviews/[id]/page.js"
     ],
     "/_not-found/page": [
       "static/chunks/webpack.js",
