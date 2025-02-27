@@ -56,16 +56,15 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                const { refreshToken } = useAuthStore.getState();
-                await refreshToken(); // ✅ Yeni Access Token al
-
-                processQueue(null);
-                return api(originalRequest); // ✅ Yeniden orijinal isteği dene
+                    await api.post('/auth/refresh');
+                    processQueue(null);
+                    return api(originalRequest);
+     // ✅ Yeniden orijinal isteği dene
             } catch (refreshError) {
                 processQueue(refreshError, null);
                 const { logout } = useAuthStore.getState();
                 logout(); // ✅ Kullanıcıyı çıkış yaptır
-                window.location.href = "/login";
+                window.location.href = "/";
                 return Promise.reject(refreshError);
             } finally {
                 isRefreshing = false;
