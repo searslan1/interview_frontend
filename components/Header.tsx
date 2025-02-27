@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
-import { Bell, Moon, Sun, User, Settings } from "lucide-react"
+import { Bell, Moon, Sun, User, Settings, LogOut } from "lucide-react"
 import { useTheme } from "next-themes"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
@@ -12,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { SettingsDialog } from "@/components/settings-dialog"
 import { Badge } from "@/components/ui/badge"
 import { useNotificationStore } from "@/store/notification-store"
+import { useAuthStore } from "@/store/authStore" // ✅ authStore içe aktarıldı
 
 const navItems = [
   { name: "Dashboard", href: "/" },
@@ -29,6 +31,8 @@ export function Header() {
   const [mounted, setMounted] = useState(false)
   const { notifications, markAsRead } = useNotificationStore()
   const unreadCount = notifications.filter((n) => !n.read).length
+  const { logout } = useAuthStore() // ✅ Logout fonksiyonunu aldık
+  const router = useRouter() // ✅ Sayfa yönlendirmesi için
 
   useEffect(() => {
     setMounted(true)
@@ -42,6 +46,12 @@ export function Header() {
 
   if (!mounted) {
     return null
+  }
+
+  // ✅ Logout butonuna tıklandığında çalışacak fonksiyon
+  const handleLogout = async () => {
+    await logout() // ✅ authStore içindeki logout fonksiyonunu çalıştır
+    router.replace("/") // ✅ Çıkış yaptıktan sonra giriş sayfasına yönlendir
   }
 
   return (
@@ -143,7 +153,10 @@ export function Header() {
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Ayarlar</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>Çıkış Yap</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={handleLogout}> {/* ✅ Logout bağlandı */}
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Çıkış Yap</span>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -157,4 +170,3 @@ export function Header() {
 }
 
 export default Header
-

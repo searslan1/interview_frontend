@@ -29,7 +29,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSwitchToRegist
   const [localError, setLocalError] = useState<string | null>(null);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
-  // Formu sıfırla
+  // Modal kapanınca formu sıfırla
   useEffect(() => {
     if (!isOpen) {
       setEmail("");
@@ -38,7 +38,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSwitchToRegist
     }
   }, [isOpen]);
 
-  // Giriş başarılı olursa yönlendir
+  // Kullanıcı giriş yaptıysa modal kapanır ve yönlendirme yapılır
   useEffect(() => {
     if (user) {
       onClose();
@@ -48,12 +48,20 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSwitchToRegist
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Şifre doğrulama
     if (password.length < 6) {
       setLocalError("Şifre en az 6 karakter olmalıdır.");
       return;
     }
+
     setLocalError(null);
-    await login(email, password);
+
+    try {
+      await login(email, password);
+    } catch (err) {
+      setLocalError("Giriş başarısız. Lütfen bilgilerinizi kontrol edin.");
+    }
   };
 
   return (

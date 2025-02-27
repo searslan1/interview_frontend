@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { ApplicationList } from "@/components/applications/ApplicationList";
-import { AdvancedFilters } from "@/components/applications/advanced-filters";
+import { AdvancedFilters } from "@/components/applications/AdvancedFilters";
 import { Header } from "@/components/Header";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { useApplicationStore } from "@/store/application-store";
+import { useApplicationStore } from "@/store/applicationStore";
 import { useInterviewStore } from "@/store/interviewStore";
 
 

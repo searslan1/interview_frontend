@@ -1,56 +1,24 @@
-import type { HRNote, SubmittedDocument } from "./common";
+import { Candidate } from './candidate';
 
-export type ApplicationStatus = "pending" | "in_progress" | "completed" | "rejected" | "accepted";
-
-export interface CandidateProfile {
-  name: string;
-  surname: string;
-  email: string;
-  phone: string;
-  phoneVerified: boolean;
-  verificationCode?: string;
-  kvkkConsent?: boolean;
-  education?: {
-    school: string;
-    degree: string;
-    graduationYear: number;
-  }[];
-  experience?: {
-    company: string;
-    position: string;
-    duration: string;
-    responsibilities: string;
-  }[];
-  skills?: {
-    technical: string[];
-    personal: string[];
-    languages: string[];
-  };
-  documents?: {
-    resume?: string;
-    certificates?: string[];
-    socialMediaLinks?: string[];
-  };
+export interface ApplicationResponse {
+  questionId: string;
+  textAnswer?: string;
+  videoAnswerUrl?: string; 
 }
 
-export interface Application {
-  id: string;
-  interviewId: string;
-  candidate: CandidateProfile; // ✅ Backend ile eşleşmesi için `candidate` objesi eklendi.
-  status: ApplicationStatus;
-  submissionDate: string;
-  completionStatus: "not_started" | "in_progress" | "completed" | "expired";
-  submittedDocuments: SubmittedDocument[];
-  personalityTestResult?: PersonalityTestResult;
-  videoInterview?: VideoInterview;
-  answers: ApplicationAnswer[];
-  aiEvaluation: AIEvaluation;
-  generalAIAnalysis?: GeneralAIAnalysis; // ✅ Backend'deki `generalAIAnalysis` eklendi.
-  hrNotes: HRNote[];
-  allowRetry: boolean; // ✅ Kullanıcının mülakata tekrar katılmasına izin verilip verilmediği
-  supportRequests: SupportRequest[]; // ✅ Kullanıcının destek talepleri
-  createdAt: string;
-  updatedAt: string;
+export interface PersonalityTestScores {
+  openness?: number;
+  conscientiousness?: number;
+  extraversion?: number;
+  agreeableness?: number;
+  neuroticism?: number;
+}
+
+export interface PersonalityTestResults {
+  testId: string;
+  completed: boolean;
+  scores?: PersonalityTestScores;
+  personalityFit?: number;
 }
 
 export interface GeneralAIAnalysis {
@@ -60,57 +28,45 @@ export interface GeneralAIAnalysis {
   problemSolvingScore?: number;
   personalityMatchScore?: number;
   strengths?: string[];
-  areasForImprovement?: string[];
+  areasForImprovement?: {
+    area: string;
+    recommendedAction: string;
+  }[];
   recommendation?: string;
 }
 
 export interface SupportRequest {
-  timestamp: string;
+  timestamp: Date;
   message: string;
 }
 
-export interface VideoInterview {
-  submitted: boolean;
-  reviewStatus: "not_reviewed" | "in_review" | "approved" | "rejected";
-}
+export type ApplicationStatus = 'pending' | 'in_progress' | 'completed' | 'rejected' | 'accepted';
 
-export interface ApplicationAnswer {
-  questionId: string;
-  questionTitle: string;
-  answerText: string;
-  videoUrl?: string;
-  duration?: number;
-  aiAnalysis?: AnswerAIAnalysis;
+export interface Application {
+  _id: string;
+  interviewId: string;
+  candidate: Candidate;
+  status: ApplicationStatus;
+  personalityTestResults?: PersonalityTestResults;
+  responses: ApplicationResponse[];
+  aiAnalysisResults: string[];
+  latestAIAnalysisId?: string;
+  generalAIAnalysis?: GeneralAIAnalysis;
+  allowRetry: boolean;
+  maxRetryAttempts?: number;
+  retryCount?: number;
+  supportRequests: SupportRequest[];
+  createdAt: string;
+  updatedAt: string;
 }
-
-export interface AnswerAIAnalysis {
-  relevanceScore: number;
-  clarityScore: number;
-  technicalAccuracyScore: number;
-  overallScore: number;
-  feedback: string;
-}
-
-export interface AIEvaluation {
-  overallScore: number;
-  technicalSkillsScore: number;
-  communicationScore: number;
-  problemSolvingScore: number;
-  culturalFitScore: number;
-  strengths: string[];
-  areasForImprovement: string[];
-  recommendation: string;
-  confidenceScore?: number;
-}
-
-export interface PersonalityTestResult {
-  completed: boolean;
-  score: {
-    openness: number;
-    conscientiousness: number;
-    extraversion: number;
-    agreeableness: number;
-    neuroticism: number;
-  };
-  analysis: string;
+// ApplicationFilters tipi
+export interface ApplicationFilters {
+  interviewId: string;
+  dateRange?: { from?: Date; to?: Date };
+  completionStatus: 'all' | 'completed' | 'inProgress' | 'incomplete';
+  applicationStatus: 'all' | 'reviewing' | 'pending' | 'positive' | 'negative';
+  experienceLevel: 'all' | 'entry' | 'mid' | 'senior';
+  aiScoreMin: number;
+  personalityType: string;
+  searchTerm: string;
 }

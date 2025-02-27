@@ -17,30 +17,27 @@ interface AuthState {
   logout: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   resetPassword: (token: string, newPassword: string) => Promise<void>;
+  setUser: (user: User | null) => void; // ✅ Kullanıcı bilgisini güncelleme fonksiyonu
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "null") : null,  // ✅ Kullanıcıyı sakla
+  user: null,
   userPreferences: null,
   isLoading: false,
   error: null,
   isEmailVerified: false,
 
+  setUser: (user) => set({ user, userPreferences: user?.preferences || null, isEmailVerified: user?.emailVerified || false }),
+
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
-      const data = await authService.login(email, password);
-      localStorage.setItem("user", JSON.stringify(data.data.user)); // ✅ Kullanıcıyı localStorage'a kaydet
-      localStorage.setItem("token", data.data.token); // ✅ Token sakla
-      set({
-        user: data.data.user,
-        userPreferences: data.data.preferences,
-        isEmailVerified: data.data.user.emailVerified,
-        isLoading: false,
-      });
+      await authService.login(email, password); // ✅ Backend cookie'ye token ekliyor
+      const user = await authService.getCurrentUser(); // ✅ Kullanıcı bilgilerini çek
+      if (user) set({ user, userPreferences: user.preferences || null, isEmailVerified: user.emailVerified, isLoading: false });
     } catch (error: any) {
       set({
-        error: error.response?.data?.message || "Giriş başarısız.",
+        error: error.response?.data?.message || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.",
         isLoading: false,
       });
     }
@@ -51,7 +48,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const success = await authService.register(userData);
       if (success) {
-        set({ isLoading: false });
+        const user = await authService.getCurrentUser(); // ✅ Kullanıcı bilgilerini çek
+        if (user) set({ user, userPreferences: user.preferences || null, isEmailVerified: user.emailVerified, isLoading: false });
         return true;
       } else {
         set({ isLoading: false, error: "Kayıt başarısız. Lütfen tekrar deneyin." });
@@ -80,39 +78,23 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-refreshToken: async () => {
-  try {
-    if (typeof window === "undefined") return; // 🚀 SSR sırasında çalışmasını engelle
-
-    const storedToken = localStorage.getItem("token"); // ✅ Önce token'i al
-    if (!storedToken) throw new Error("Oturum süresi doldu.");
-
-    const data = await authService.refreshToken(storedToken); // ✅ Eski token göndererek yenile
-
-    localStorage.setItem("token", data.data.token); // ✅ Yeni token kaydet
-    localStorage.setItem("user", JSON.stringify(data.data.user));
-
-    set({
-      user: data.data.user,
-      userPreferences: data.data.preferences,
-      isLoading: false, // ✅ Kullanıcıyı tekrar aktif hale getir
-      error: null,
-    });
-  } catch (error: any) {
-    console.error("Token yenileme hatası:", error.message);
-
-    set({
-      error: "Oturum süresi doldu. Lütfen tekrar giriş yapın.",
-      user: null,
-      userPreferences: null,
-      isEmailVerified: false,
-      isLoading: false, // ✅ Logout sonrası durumu sıfırla
-    });
-
-    localStorage.removeItem("user"); // ✅ Oturum kapatılırsa temizle
-    localStorage.removeItem("token");
-  }
-},
+  refreshToken: async () => {
+    try {
+      console.log("Token yenileme işlemi başladı.");
+      await authService.refreshToken(); // ✅ Backend cookie içinde yeni access token dönecek
+      const user = await authService.getCurrentUser(); // ✅ Kullanıcı bilgilerini tekrar al
+      if (user) set({ user, userPreferences: user.preferences || null, isEmailVerified: user.emailVerified, isLoading: false });
+    } catch (error: any) {
+      console.error("Token yenileme hatası:", error.message);
+      set({
+        error: "Oturum süresi doldu. Lütfen tekrar giriş yapın.",
+        user: null,
+        userPreferences: null,
+        isEmailVerified: false,
+        isLoading: false,
+      });
+    }
+  },
 
   logout: async () => {
     try {
@@ -120,14 +102,7 @@ refreshToken: async () => {
     } catch (error: any) {
       console.error("Çıkış işlemi başarısız:", error);
     } finally {
-      set({
-        user: null,
-        userPreferences: null,
-        isEmailVerified: false,
-        error: null,
-      });
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
+      set({ user: null, userPreferences: null, isEmailVerified: false, error: null });
     }
   },
 
@@ -138,7 +113,7 @@ refreshToken: async () => {
       set({ isLoading: false });
     } catch (error: any) {
       set({
-        error: "Şifre sıfırlama isteği başarısız.",
+        error: error.response?.data?.message || "Şifre sıfırlama isteği başarısız.",
         isLoading: false,
       });
     }
@@ -151,7 +126,7 @@ refreshToken: async () => {
       set({ isLoading: false });
     } catch (error: any) {
       set({
-        error: "Şifre sıfırlama başarısız.",
+        error: error.response?.data?.message || "Şifre sıfırlama başarısız.",
         isLoading: false,
       });
     }

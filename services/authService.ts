@@ -1,10 +1,20 @@
 // services/authService.ts
+import { useAuthStore } from "@/store/authStore";
 import api from "@/utils/api";
 
 export const authService = {
   async login(email: string, password: string) {
     const response = await api.post("/auth/login", { email, password });
     return response.data;
+  },
+
+  async getCurrentUser() {
+    try {
+      const response = await api.get("/profile/me"); // ✅ Yeni endpoint'e yönlendirildi
+      return response.data.data; // ✅ Backend'den gelen kullanıcı bilgilerini al
+    } catch (error) {
+      return null;
+    }
   },
 
   async register(userData: { name: string; email: string; password: string; phone?: string }) {
@@ -21,10 +31,10 @@ export const authService = {
     return response.data;
   },
 
-  async refreshToken(storedToken: string) {
+  async refreshToken() {
     try {
-      const response = await api.get("/auth/refresh");
-      return response.data;
+      await api.post("/auth/refresh"); // ✅ Backend yeni token'ı cookie'ye yazacak
+      return await this.getCurrentUser(); // ✅ Kullanıcı bilgilerini tekrar al
     } catch (error) {
       throw new Error("Token yenileme başarısız. Tekrar giriş yapmalısınız.");
     }
@@ -33,10 +43,12 @@ export const authService = {
   async logout() {
     try {
       await api.post("/auth/logout");
+      useAuthStore.getState().logout(); // ✅ State sıfırla
     } catch (error) {
       throw new Error("Çıkış yaparken hata oluştu.");
     }
   },
+
 
   async requestPasswordReset(email: string) {
     const response = await api.post("/auth/forgot-password", { email });

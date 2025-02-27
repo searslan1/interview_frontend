@@ -1,14 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Users, Clock } from "lucide-react";
-import type { Interview, InterviewApplicant, InterviewStatus } from "@/types/interview";
-
-interface InterviewCardProps {
-  interview: Interview;
-  isFeatured?: boolean;
-}
+import type { Interview, InterviewStatus } from "@/types/interview";
 
 // ✅ Durumlara uygun badge renkleri
 const statusColors: Record<InterviewStatus, string> = {
@@ -19,60 +15,60 @@ const statusColors: Record<InterviewStatus, string> = {
   inactive: "bg-red-500 text-white",
 };
 
+interface InterviewCardProps {
+  interview: Interview;
+}
+
 export function InterviewCard({ interview }: InterviewCardProps) {
+  const router = useRouter();
+
+  // ✅ Mülakat süresini hesapla (Boş array hatası önlendi)
+  const totalDuration = interview.questions?.reduce((total, q) => total + q.duration, 0) || 0;
+
   return (
-    <Card>
+    <Card
+      className="cursor-pointer hover:shadow-lg transition-shadow duration-300"
+      onClick={() => router.push(`/interviews/${interview._id}`)}
+    >
       <CardContent className="p-4">
         {/* Başlık ve Açıklama */}
         <h3 className="text-lg font-semibold mb-2">{interview.title}</h3>
-        {interview.questions.length > 0 && (
-          <p className="text-sm text-gray-500 mb-4">
-            {interview.questions.length} soru içeriyor.
-          </p>
-        )}
+        <p className="text-sm text-gray-500 mb-4">
+          {interview.questions?.length ?? 0} soru içeriyor.
+        </p>
 
-        {/* Tarih Kontrolü */}
+        {/* Tarih Bilgisi */}
         <div className="flex items-center gap-2 mb-2">
           <Calendar className="w-4 h-4" />
           <span className="text-sm">
             {interview.expirationDate
-              ? new Date(interview.expirationDate).toLocaleDateString()
+              ? new Date(interview.expirationDate).toLocaleDateString("tr-TR", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                })
               : "Belirtilmemiş"}
           </span>
         </div>
 
-        {/* Katılımcı Sayısı */}
+        {/* Katılımcı Bilgisi */}
         <div className="flex items-center gap-2 mb-2">
           <Users className="w-4 h-4" />
           <span className="text-sm">
-            {interview.stages.personalityTest ? "Kişilik Testi Var" : "Sadece Soru Seti"} | {interview.questions.length} soru
+            {interview.stages.personalityTest ? "Kişilik Testi Var" : "Sadece Soru Seti"} | {interview.questions?.length ?? 0} soru
           </span>
         </div>
 
         {/* Süre Bilgisi */}
         <div className="flex items-center gap-2 mb-4">
           <Clock className="w-4 h-4" />
-          <span className="text-sm">{interview.questions.reduce((total, q) => total + q.duration, 0) || 0} dakika</span>
+          <span className="text-sm">{totalDuration} dakika</span>
         </div>
 
         {/* Durum Bilgisi */}
         <Badge className={statusColors[interview.status]}>
           {interview.status ?? "Bilinmiyor"}
         </Badge>
-
-        {/* Başvuran Sayısı */}
-        <div className="mt-4">
-          <h4 className="text-sm font-semibold mb-2">Başvuran Sayısı:</h4>
-          <p className="text-sm">{interview.questions.length ?? 0} kişi başvurdu</p>
-        </div>
-
-        {/* Son Başvuran Bilgisi */}
-        {interview.questions.length > 0 && (
-          <div className="mt-4">
-            <h4 className="text-sm font-semibold mb-2">Son Başvuran:</h4>
-            <p className="text-sm">{interview.questions[0].questionText ?? "Bilinmiyor"}</p>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

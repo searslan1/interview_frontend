@@ -4,21 +4,14 @@ import { forwardRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Application } from "@/types/application";
 
 interface ApplicationListProps {
-  applications: Array<{
-    id: string;
-    candidateName: string;
-    email: string;
-    status: "pending" | "in_progress" | "completed" | "rejected" | "accepted"; 
-    submissionDate: string;
-    aiScore: number;
-    interviewTitle: string;
-  }>;
-  lastApplicationRef?: (node: HTMLTableRowElement | null) => void; // ✅ `lastApplicationRef` opsiyonel hale getirildi
+  applications: Application[];
+  lastApplicationRef?: (node: HTMLTableRowElement | null) => void;
 }
 
-const statusColors: Record<ApplicationListProps["applications"][0]["status"], string> = {
+const statusColors: Record<Application["status"], string> = {
   pending: "bg-yellow-500 text-white",
   in_progress: "bg-blue-500 text-white",
   completed: "bg-green-500 text-white",
@@ -26,7 +19,6 @@ const statusColors: Record<ApplicationListProps["applications"][0]["status"], st
   accepted: "bg-green-500 text-white",
 };
 
-// ✅ `forwardRef` ile `lastApplicationRef` desteklendi
 export const ApplicationList = forwardRef<HTMLTableRowElement, ApplicationListProps>(
   ({ applications, lastApplicationRef }, ref) => {
     return (
@@ -42,7 +34,7 @@ export const ApplicationList = forwardRef<HTMLTableRowElement, ApplicationListPr
               <TableHeader>
                 <TableRow>
                   <TableHead>Aday Adı</TableHead>
-                  <TableHead>Mülakat</TableHead>
+                  <TableHead>Mülakat ID</TableHead>
                   <TableHead>Durum</TableHead>
                   <TableHead>Başvuru Tarihi</TableHead>
                   <TableHead>AI Skoru</TableHead>
@@ -50,14 +42,21 @@ export const ApplicationList = forwardRef<HTMLTableRowElement, ApplicationListPr
               </TableHeader>
               <TableBody>
                 {applications.map((application, index) => (
-                  <TableRow key={application.id} ref={index === applications.length - 1 ? lastApplicationRef : null}>
-                    <TableCell>{application.candidateName}</TableCell>
-                    <TableCell>{application.interviewTitle}</TableCell>
+                  <TableRow
+                    key={application._id}
+                    ref={index === applications.length - 1 ? lastApplicationRef : null}
+                  >
                     <TableCell>
-                      <Badge className={statusColors[application.status]}>{application.status}</Badge>
+                      {application.candidate.name} {application.candidate.surname}
                     </TableCell>
-                    <TableCell>{application.submissionDate}</TableCell>
-                    <TableCell>{application.aiScore || "N/A"}</TableCell> 
+                    <TableCell>{application.interviewId}</TableCell>
+                    <TableCell>
+                      <Badge className={statusColors[application.status]}>
+                        {formatStatus(application.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{formatDate(application.createdAt)}</TableCell>
+                    <TableCell>{application.generalAIAnalysis?.overallScore ?? "N/A"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -69,4 +68,25 @@ export const ApplicationList = forwardRef<HTMLTableRowElement, ApplicationListPr
   }
 );
 
-ApplicationList.displayName = "ApplicationList"; // ✅ `forwardRef` kullanıldığı için displayName eklendi
+ApplicationList.displayName = "ApplicationList";
+
+// ✅ Yardımcı fonksiyonlar eklendi
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString("tr-TR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function formatStatus(status: Application["status"]) {
+  const statusMap = {
+    pending: "Bekliyor",
+    in_progress: "Devam Ediyor",
+    completed: "Tamamlandı",
+    rejected: "Reddedildi",
+    accepted: "Kabul Edildi",
+  };
+
+  return statusMap[status] || status;
+}

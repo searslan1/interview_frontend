@@ -27,9 +27,10 @@ export default function InterviewsPage() {
 
   const { interviews, loading, error, fetchInterviews } = useInterviewStore();
 
+  // ✅ `useEffect` içinde gereksiz bağımlılık kaldırıldı
   useEffect(() => {
     fetchInterviews();
-  }, [fetchInterviews]);
+  }, []); // Bağımlılık listesi boş bırakıldı (sadece 1 kez çağrılacak)
 
   const handleFilterChange = (newFilters: any) => {
     setFilters(newFilters);
@@ -40,7 +41,7 @@ export default function InterviewsPage() {
   }
 
   if (error) {
-    return <div>Hata: {error}</div>;
+    return <div className="text-red-500">Hata: {error}</div>;
   }
 
   return (
@@ -57,7 +58,7 @@ export default function InterviewsPage() {
           {interviews.length > 0 ? (
             <InterviewList interviews={interviews} filters={filters} />
           ) : (
-            <p>Henüz mülakat bulunmamaktadır.</p>
+            <p className="text-gray-500">Henüz mülakat bulunmamaktadır.</p>
           )}
 
           <CreateInterviewDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />

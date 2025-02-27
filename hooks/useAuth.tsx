@@ -1,5 +1,6 @@
-import { useAuthStore } from "@/store/authStore";
+import { useAuthStore, } from "@/store/authStore";
 import { useEffect } from "react";
+import { authService } from "@/services/authService";
 
 export const useAuth = () => {
   const {
@@ -14,11 +15,20 @@ export const useAuth = () => {
     logout,
     requestPasswordReset,
     resetPassword,
+    setUser, // ✅ Yeni eklenen fonksiyon
   } = useAuthStore();
 
   useEffect(() => {
+    if (typeof window === "undefined") return; // ✅ SSR hatalarını engelle
+
     if (!user) {
-      refreshToken().catch(() => {}); // ❌ Hata olursa kullanıcıyı atmasın, loglasın
+      authService.getCurrentUser()
+        .then((fetchedUser) => {
+          if (fetchedUser) setUser(fetchedUser); // ✅ Kullanıcı bilgilerini güncelle
+        })
+        .catch(() => {
+          console.error("Kullanıcı bilgileri alınamadı.");
+        });
     }
   }, []);
 

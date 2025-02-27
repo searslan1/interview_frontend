@@ -9,35 +9,28 @@ import { Label } from "@/components/ui/label"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ChevronDown } from "lucide-react"
+import { ApplicationFilters } from "@/types/application"
 
 interface AdvancedFiltersProps {
-  onFilterChange: (filters: any) => void
+  onFilterChange: (filters: ApplicationFilters) => void
   interviews?: { id: string; title: string }[]
   personalityTypes?: string[]
 }
 
 export function AdvancedFilters({ onFilterChange, interviews = [], personalityTypes = [] }: AdvancedFiltersProps) {
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<ApplicationFilters>({
     interviewId: "all",
     dateRange: { from: undefined, to: undefined },
     completionStatus: "all",
     applicationStatus: "all",
     experienceLevel: "all",
     aiScoreMin: 0,
-    gestureScoreMin: 0,
-    speechScoreMin: 0,
     personalityType: "all",
-    linkedInScoreMin: 0,
-    technicalScoreMin: 0,
-    emotionAnalysis: "all",
-    eyeContactLevel: "all",
-    stressLevel: "all",
     searchTerm: "",
   })
 
-  const handleFilterChange = (key: string, value: any) => {
-    const newFilters = { ...filters, [key]: value }
-    setFilters(newFilters)
+  const handleFilterChange = <K extends keyof ApplicationFilters>(key: K, value: ApplicationFilters[K]) => {
+    setFilters((prev) => ({ ...prev, [key]: value }))
   }
 
   const applyFilters = () => {
@@ -57,7 +50,7 @@ export function AdvancedFilters({ onFilterChange, interviews = [], personalityTy
 
           <div>
             <Label>Mülakat Seçimi</Label>
-            {interviews && interviews.length > 0 && (
+            {interviews.length > 0 && (
               <Select value={filters.interviewId} onValueChange={(value) => handleFilterChange("interviewId", value)}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Mülakat seçin" />
@@ -83,7 +76,7 @@ export function AdvancedFilters({ onFilterChange, interviews = [], personalityTy
             <Label>Tamamlanma Durumu</Label>
             <Select
               value={filters.completionStatus}
-              onValueChange={(value) => handleFilterChange("completionStatus", value)}
+              onValueChange={(value) => handleFilterChange("completionStatus", value as ApplicationFilters["completionStatus"])}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Durum" />
@@ -101,7 +94,7 @@ export function AdvancedFilters({ onFilterChange, interviews = [], personalityTy
             <Label>Başvuru Durumu</Label>
             <Select
               value={filters.applicationStatus}
-              onValueChange={(value) => handleFilterChange("applicationStatus", value)}
+              onValueChange={(value) => handleFilterChange("applicationStatus", value as ApplicationFilters["applicationStatus"])}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Durum" />
@@ -112,24 +105,6 @@ export function AdvancedFilters({ onFilterChange, interviews = [], personalityTy
                 <SelectItem value="pending">Beklemede</SelectItem>
                 <SelectItem value="positive">Olumlu</SelectItem>
                 <SelectItem value="negative">Olumsuz</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>Deneyim Süresi</Label>
-            <Select
-              value={filters.experienceLevel}
-              onValueChange={(value) => handleFilterChange("experienceLevel", value)}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Deneyim Seviyesi" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tümü</SelectItem>
-                <SelectItem value="entry">Yeni Başlayan</SelectItem>
-                <SelectItem value="mid">Orta Seviye</SelectItem>
-                <SelectItem value="senior">Kıdemli</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -147,7 +122,7 @@ export function AdvancedFilters({ onFilterChange, interviews = [], personalityTy
 
           <div>
             <Label>Kişilik Tipi</Label>
-            {personalityTypes && personalityTypes.length > 0 && (
+            {personalityTypes.length > 0 && (
               <Select
                 value={filters.personalityType}
                 onValueChange={(value) => handleFilterChange("personalityType", value)}
@@ -183,4 +158,3 @@ export function AdvancedFilters({ onFilterChange, interviews = [], personalityTy
     </Popover>
   )
 }
-
