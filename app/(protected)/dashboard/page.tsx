@@ -44,9 +44,11 @@ export default function DashboardPage() {
       <FavoriteCandidates />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-        <NotificationPanel />
-        <ChatAssistant />
-      </div>
+  <NotificationPanel />
+  <ChatAssistant />
+</div>
+
+
     </main>
   );
 }
