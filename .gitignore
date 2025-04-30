@@ -50,4 +50,4 @@ coverage/
 *.sw?
 
 # TypeScript
-*.tsbuildinfo
+*.tsbuildinfo.env
