@@ -124,31 +124,6 @@ Cypress / Playwright: E2E testler için
 
 msw: Mock servisler için (isteğe bağlı)
 
-📊 Yol Haritası
-
-🧠 Katkı Sağlayanlar
-
-Rol
-
-İsim
-
-👤 CEO / PO
-
-Adınız
-
-👨‍💻 Frontend
-
-Developer1
-
-🎨 UI/UX
-
-DesignerName
-
-🤖 AI Dev
-
-ML EngineerName
-
-🌍 Deployment
 
 Bu proje Vercel ile CI/CD pipeline üzerinden otomatik olarak dağıtılır.
 
