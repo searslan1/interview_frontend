@@ -11,12 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { getPasswordValidationError } from "@/utils/validationSchemas"; // Varsayım
 
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSwitchToLogin: () => void;
-  onRegisterSuccess: () => void;
+  //onRegisterSuccess: () => void;
 
 }
 
@@ -38,18 +39,31 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (password.length < 6) {
-      alert("Şifre en az 6 karakter olmalıdır.");
+    // Şifre doğrulama: Yeni güçlü şifre kuralı uygulanıyor
+    const validationError = getPasswordValidationError(password);
+
+    if (validationError) {
+      alert(validationError); // Ya da alert yerine state'e kaydedip gösterin
       return;
     }
 
     const success = await register({ name, email, password, phone: phone || undefined });
 
-    if (success) {
+   if (success) {
+      // ✅ DÜZELTME: Başarılı mesajı göster ve otomatik login yerine login ekranına yönlendir
       setSuccessMessage(
         "Kayıt başarılı! Lütfen e-postanızı kontrol edip hesabınızı doğrulayın."
       );
+      
+      // 3 saniye sonra otomatik olarak giriş ekranına geçiş yap
+      setTimeout(() => {
+        onSwitchToLogin();
+        setSuccessMessage(null); // Mesajı temizle
+        onClose(); // Modalı kapat (isteğe bağlı)
+      }, 3000); 
+
     }
+    // Hata durumunda useAuth'dan gelen error zaten gösteriliyor
   };
 
   return (

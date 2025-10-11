@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress"
 
 interface AIDetailedReportsProps {
   candidate: any
+  activeQuestionId?: string
 }
 
 export function AIDetailedReports({ candidate }: AIDetailedReportsProps) {

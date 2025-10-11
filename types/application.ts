@@ -1,9 +1,11 @@
-import { Candidate } from './candidate';
+import { Candidate, CandidateExperience } from './candidate';
 
+// ✅ YENİ: Backend Model'deki gömülü yanıta uygun hale getirildi
 export interface ApplicationResponse {
   questionId: string;
-  textAnswer?: string;
-  videoAnswerUrl?: string; 
+  videoUrl?: string; // S3/Cloudfront linki
+  textAnswer?: string; 
+  duration?: number;
 }
 
 export interface PersonalityTestScores {
@@ -40,17 +42,32 @@ export interface SupportRequest {
   message: string;
 }
 
-export type ApplicationStatus = 'pending' | 'in_progress' | 'completed' | 'rejected' | 'accepted';
+// ✅ GÜNCELLENDİ: Backend Model'deki tüm durumları yansıtacak şekilde genişletildi
+export type ApplicationStatus = 
+  | 'pending'
+  | 'in_progress'
+  | 'completed'
+  | 'rejected'
+  | 'accepted'
+  | 'awaiting_video_responses' // Yeni
+  | 'awaiting_ai_analysis';     // Yeni
 
 export interface Application {
+  id: string;
   _id: string;
   interviewId: string;
   candidate: Candidate;
   status: ApplicationStatus;
+  
+  // ✅ DÜZELTME: Backend Model'deki gömülü yanıt dizisi
+  responses: ApplicationResponse[]; 
+  experience: CandidateExperience[];
   personalityTestResults?: PersonalityTestResults;
-  responses: ApplicationResponse[];
-  aiAnalysisResults: string[];
+  
+  // ✅ DÜZELTME: Backend'den gelen AI analiz sonuçlarının ObjectId referans dizisi
+  aiAnalysisResults: string[]; // ObjectId referansları string olarak gelecek
   latestAIAnalysisId?: string;
+  
   generalAIAnalysis?: GeneralAIAnalysis;
   allowRetry: boolean;
   maxRetryAttempts?: number;
@@ -59,7 +76,8 @@ export interface Application {
   createdAt: string;
   updatedAt: string;
 }
-// ApplicationFilters tipi
+
+// ApplicationFilters tipi (Mevcut haliyle kaldı)
 export interface ApplicationFilters {
   interviewId: string;
   dateRange?: { from?: Date; to?: Date };

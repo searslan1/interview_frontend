@@ -13,6 +13,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import ForgotPasswordModal from "./ForgotPasswordModal";
+import { getPasswordValidationError } from "@/utils/validationSchemas"; // Varsayım
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -49,9 +50,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSwitchToRegist
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Şifre doğrulama
-    if (password.length < 6) {
-      setLocalError("Şifre en az 6 karakter olmalıdır.");
+    // Şifre doğrulama: Yeni güçlü şifre kuralı uygulanıyor
+    const validationError = getPasswordValidationError(password);
+    
+    if (validationError) {
+      setLocalError(validationError);
       return;
     }
 
@@ -60,7 +63,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSwitchToRegist
     try {
       await login(email, password);
     } catch (err) {
-      setLocalError("Giriş başarısız. Lütfen bilgilerinizi kontrol edin.");
+      // Backend hatası (401 invalid credentials) buradan yakalanacaktır
+      // useAuth hook'undan gelen error zaten gösteriliyor
+      // Manuel hata mesajı yerine useAuth'dan gelen hata mesajını kullanmak daha iyi.
+      setLocalError(error || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.");
     }
   };
 

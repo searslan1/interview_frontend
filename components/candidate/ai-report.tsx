@@ -2,104 +2,92 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { Application, GeneralAIAnalysis } from "@/types/application"; // Application ve IGeneralAIAnalysis import edildi
 
 interface AIReportProps {
-  applicationId: number
+  application: Application; // ✅ applicationId yerine tüm application objesini alacak
 }
 
-export function AIReport({ applicationId }: AIReportProps) {
-  // Mock AI report data
-  const aiReport = {
-    overallCompatibility: 85,
-    personalityAnalysis: "INTJ - Mimar",
-    gestureAnalysis: {
-      confidence: 80,
-      excitement: 70,
-      stress: 30,
-    },
-    speechAnalysis: {
-      fluency: 90,
-      confidence: 85,
-      persuasiveness: 75,
-    },
-    technicalKnowledge: 88,
-  }
+export function AIReport({ application }: AIReportProps) {
+  // 🚀 GERÇEK VERİ BAĞLANTISI: generalAIAnalysis ve personalityTestResults çekiliyor
+  const generalAnalysis = application.generalAIAnalysis || {};
+  const personalityResults = application.personalityTestResults || {};
 
+  // NOT: Backend IGeneralAIAnalysis yapınızda 'gestureAnalysis', 'speechAnalysis' 
+  // veya 'personalityAnalysis' metin alanları direkt olarak yok. 
+  // Bu yüzden mevcut Backend yapınıza uyan skorları kullanıyoruz.
+  
   return (
     <div className="space-y-6">
+      
+      {/* 1. Genel Uyumluluk (Overall Score) */}
       <Card>
         <CardHeader>
-          <CardTitle>Genel Uyumluluk</CardTitle>
+          <CardTitle>Genel Uyumluluk Skoru</CardTitle>
         </CardHeader>
         <CardContent>
-          <Progress value={aiReport.overallCompatibility} className="w-full" />
-          <p className="mt-2 text-center">{aiReport.overallCompatibility}%</p>
+          <Progress value={generalAnalysis.overallScore || 0} className="w-full" />
+          <p className="mt-2 text-center text-lg font-bold">{generalAnalysis.overallScore ?? "N/A"}%</p>
         </CardContent>
       </Card>
 
+      {/* 2. Kişilik Uyum Skoru (Personality Match Score) */}
       <Card>
         <CardHeader>
-          <CardTitle>Kişilik Analizi</CardTitle>
+          <CardTitle>AI Kişilik Uyum Skoru</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>{aiReport.personalityAnalysis}</p>
+          <Progress value={generalAnalysis.personalityMatchScore || 0} className="w-full" />
+          <p className="mt-2 text-center text-lg font-bold">{generalAnalysis.personalityMatchScore ?? "N/A"}%</p>
+        </CardContent>
+      </Card>
+      
+      {/* 3. Güçlü Yönler (Strengths) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Güçlü Yönler</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {(generalAnalysis.strengths && generalAnalysis.strengths.length > 0) ? (
+            <ul className="list-disc list-inside space-y-1">
+              {generalAnalysis.strengths.map((s, i) => <li key={i}>{s}</li>)}
+            </ul>
+          ) : (
+            <p className="text-gray-500">Analiz sonuçlanmadı veya güçlü yön bulunamadı.</p>
+          )}
         </CardContent>
       </Card>
 
+      {/* 4. Geliştirilebilecek Alanlar (Improvement Areas) */}
       <Card>
         <CardHeader>
-          <CardTitle>Jest ve Mimik Analizi</CardTitle>
+          <CardTitle>Geliştirilebilecek Alanlar & Öneriler</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            <div>
-              <p>Özgüven</p>
-              <Progress value={aiReport.gestureAnalysis.confidence} className="w-full" />
+          {(generalAnalysis.areasForImprovement && generalAnalysis.areasForImprovement.length > 0) ? (
+            <div className="space-y-4">
+              {generalAnalysis.areasForImprovement.map((item, i) => (
+                <div key={i} className="border-l-4 border-orange-400 pl-3">
+                  <p className="font-semibold">{item.area}</p>
+                  <p className="text-sm text-gray-600">{item.recommendedAction}</p>
+                </div>
+              ))}
             </div>
-            <div>
-              <p>Heyecan</p>
-              <Progress value={aiReport.gestureAnalysis.excitement} className="w-full" />
-            </div>
-            <div>
-              <p>Stres</p>
-              <Progress value={aiReport.gestureAnalysis.stress} className="w-full" />
-            </div>
-          </div>
+          ) : (
+            <p className="text-gray-500">Analiz sonuçlanmadı veya geliştirme alanı bulunamadı.</p>
+          )}
         </CardContent>
       </Card>
 
+      {/* 5. Genel Öneri (Recommendation) */}
       <Card>
         <CardHeader>
-          <CardTitle>Konuşma Analizi</CardTitle>
+          <CardTitle>Genel AI Önerisi</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            <div>
-              <p>Akıcılık</p>
-              <Progress value={aiReport.speechAnalysis.fluency} className="w-full" />
-            </div>
-            <div>
-              <p>Özgüven</p>
-              <Progress value={aiReport.speechAnalysis.confidence} className="w-full" />
-            </div>
-            <div>
-              <p>İkna Kabiliyeti</p>
-              <Progress value={aiReport.speechAnalysis.persuasiveness} className="w-full" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Teknik Bilgi Analizi</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Progress value={aiReport.technicalKnowledge} className="w-full" />
-          <p className="mt-2 text-center">{aiReport.technicalKnowledge}%</p>
+          <p className="italic text-gray-700">{generalAnalysis.recommendation || "Analizden genel bir öneri alınamadı."}</p>
         </CardContent>
       </Card>
     </div>
   )
 }
-

@@ -1,13 +1,12 @@
 export type UserRole = "admin" | "company" | "user" | "super_admin";
 
-export type UserStatus = "active" | "inactive" | "suspended";
 
 export interface User {
   _id: string; 
   name: string;
   email: string;
   role: UserRole;
-  status: UserStatus; // ✅ Backend'deki `isActive` yerine `status` kullanıyoruz
+  isActive: boolean; 
 
   // Güvenlik & Hesap Durumu
   emailVerified: boolean;
@@ -44,10 +43,5 @@ export interface UserPreference {
     customColors?: Record<string, string>;
   };
   notificationsEnabled: boolean;
-  notificationSettings: {
-    email: boolean;
-    sms: boolean;
-    inApp: boolean;
-  };
   timezone: string;
 }

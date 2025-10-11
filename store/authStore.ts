@@ -43,14 +43,19 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  register: async (userData) => {
+ register: async (userData) => {
     set({ isLoading: true, error: null });
     try {
       const success = await authService.register(userData);
+      
       if (success) {
-        const user = await authService.getCurrentUser(); // ✅ Kullanıcı bilgilerini çek
-        if (user) set({ user, userPreferences: user.preferences || null, isEmailVerified: user.emailVerified, isLoading: false });
-        return true;
+        // ❌ ÖNCEKİ KOD KALDIRILDI:
+        // const user = await authService.getCurrentUser();
+        // if (user) set({ user, userPreferences: user.preferences || null, isEmailVerified: user.emailVerified, isLoading: false });
+        
+        // ✅ DÜZELTME: Başarılıysa sadece loading'i kapat ve true dön
+        set({ isLoading: false }); 
+        return true; 
       } else {
         set({ isLoading: false, error: "Kayıt başarısız. Lütfen tekrar deneyin." });
         return false;
@@ -63,6 +68,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       return false;
     }
   },
+
 
   verifyEmail: async (token) => {
     set({ isLoading: true, error: null });

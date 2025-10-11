@@ -5,20 +5,45 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Application } from "@/types/application";
+import useApplicationStore from "../../store/applicationStore"; // Güvenilirlik için göreceli yol
+import { useToast } from "@/hooks/use-toast";
 
 interface CandidateDetailCardProps {
   application: Application;
   onClose: () => void;
 }
 
+// updateStatus'un beklediği sınırlı durumlar
+type UpdatableStatus = 'pending' | 'rejected' | 'accepted';
+
 export function CandidateDetailCard({ application, onClose }: CandidateDetailCardProps) {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const { updateStatus, loading } = useApplicationStore(); 
+  const { toast } = useToast();
 
-  // ✅ Durumu değiştirecek bir API isteği buraya eklenebilir.
-  const handleStatusUpdate = (newStatus: Application["status"]) => {
-    console.log(`Başvuru durumu güncellendi: ${newStatus}`);
-    // Burada bir API isteği yapılabilir (örn. PATCH /applications/:id)
+  // ✅ DÜZELTME: Sadece updatable status tipleri kabul ediliyor.
+  const handleStatusUpdate = async (newStatus: UpdatableStatus) => {
+    if (!application._id || loading) return;
+
+    try {
+        await updateStatus(application._id, newStatus);
+        
+        toast({
+            title: "Durum Güncellendi",
+            description: `Başvuru durumu başarıyla "${formatStatus(newStatus)}" olarak ayarlandı.`,
+        });
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: "Hata",
+            description: "Başvuru durumu güncellenirken bir sorun oluştu.",
+        });
+    }
   };
+  
+  // ✅ DÜZELTME: Video yanıtları için kontrol dizisi (URL'i olanlar)
+  const videoResponses = application.responses.filter(r => r.videoUrl); // Tip uyumsuzluğu düzeltildi
+
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -44,56 +69,66 @@ export function CandidateDetailCard({ application, onClose }: CandidateDetailCar
         {/* Video Mülakat */}
         <div>
           <h3 className="font-semibold">Video Mülakat</h3>
-          {application.aiAnalysisResults.length > 0 ? (
+          {videoResponses.length > 0 ? (
             <>
+              <p className="text-sm text-gray-500 mb-2">
+                Soru {currentVideoIndex + 1} / {videoResponses.length}
+              </p>
+              
               <video
-                src={`/videos/${application.aiAnalysisResults[currentVideoIndex]}.mp4`} // ✅ Video URL yapısı düzenlendi
+                // ✅ DÜZELTME: Video kaynağı responses dizisinden 'videoUrl' ile çekiliyor
+                src={videoResponses[currentVideoIndex].videoUrl} 
                 controls
-                className="w-full"
+                className="w-full rounded-lg shadow-md"
               />
               <div className="flex justify-between mt-2">
                 <Button
                   onClick={() => setCurrentVideoIndex((prev) => Math.max(0, prev - 1))}
                   disabled={currentVideoIndex === 0}
                 >
-                  Önceki
+                  Önceki Soru
                 </Button>
                 <Button
                   onClick={() =>
-                    setCurrentVideoIndex((prev) => Math.min(application.aiAnalysisResults.length - 1, prev + 1))
+                    setCurrentVideoIndex((prev) => Math.min(videoResponses.length - 1, prev + 1))
                   }
-                  disabled={currentVideoIndex === application.aiAnalysisResults.length - 1}
+                  disabled={currentVideoIndex === videoResponses.length - 1}
                 >
-                  Sonraki
+                  Sonraki Soru
                 </Button>
               </div>
             </>
           ) : (
-            <p>Video cevap bulunmamaktadır.</p>
+            <p className="text-gray-500">Video cevap bulunmamaktadır veya AI analizi beklenmektedir.</p>
           )}
         </div>
 
         {/* AI Analiz Sonuçları */}
-        <div>
-          <h3 className="font-semibold">AI Analiz Sonuçları</h3>
-          <p>
-            <strong>Genel Skor:</strong> {application.generalAIAnalysis?.overallScore ?? "N/A"}
-          </p>
-          <p>
-            <strong>Teknik Skor:</strong> {application.generalAIAnalysis?.technicalSkillsScore ?? "N/A"}
-          </p>
-          <p>
-            <strong>İletişim Skoru:</strong> {application.generalAIAnalysis?.communicationScore ?? "N/A"}
-          </p>
-          <p>
-            <strong>Problem Çözme Skoru:</strong> {application.generalAIAnalysis?.problemSolvingScore ?? "N/A"}
-          </p>
-        </div>
+        {application.generalAIAnalysis && (
+            <div className="border-t pt-4">
+            <h3 className="font-semibold text-lg text-purple-700">🤖 AI Analiz Özeti</h3>
+            <p className="text-sm">
+                <strong>Genel Skor:</strong> <span className="font-bold text-xl">{application.generalAIAnalysis?.overallScore ?? "N/A"}</span>/100
+            </p>
+            <p>
+                <strong>Teknik Skor:</strong> {application.generalAIAnalysis?.technicalSkillsScore ?? "N/A"}
+            </p>
+            
+            <h4 className="font-medium mt-3 text-gray-700">Önerilen Gelişim Alanları:</h4>
+            <ul className="list-disc list-inside text-sm pl-4">
+                {application.generalAIAnalysis.areasForImprovement?.map((item, index) => (
+                    <li key={index} className="py-1">
+                        **{item.area}**: {item.recommendedAction}
+                    </li>
+                ))}
+            </ul>
+            </div>
+        )}
 
         {/* Kişilik Testi Sonucu */}
-        {application.personalityTestResults && (
-          <div>
-            <h3 className="font-semibold">Kişilik Testi Sonucu</h3>
+        {application.personalityTestResults && application.personalityTestResults.completed && (
+          <div className="border-t pt-4">
+            <h3 className="font-semibold">🧠 Kişilik Testi Sonucu</h3>
             <p>
               <strong>Kişilik Uyum Skoru:</strong> {application.personalityTestResults.personalityFit ?? "N/A"}
             </p>
@@ -101,15 +136,30 @@ export function CandidateDetailCard({ application, onClose }: CandidateDetailCar
         )}
 
         {/* Durum Güncelleme Butonları */}
-        <div className="flex space-x-2">
-          <Button onClick={() => handleStatusUpdate("accepted")} className="bg-green-500 text-white">
-            Olumlu
+        <div className="flex space-x-2 pt-4 border-t">
+          <Button 
+            // ✅ DÜZELTME: Sadece updatable status gönderiliyor
+            onClick={() => handleStatusUpdate("accepted")} 
+            className="bg-green-600 hover:bg-green-700 text-white"
+            disabled={loading}
+          >
+            {loading && application.status !== 'accepted' ? "Kaydediliyor..." : "Kabul Et"}
           </Button>
-          <Button onClick={() => handleStatusUpdate("rejected")} className="bg-red-500 text-white">
-            Olumsuz
+          <Button 
+            // ✅ DÜZELTME: Sadece updatable status gönderiliyor
+            onClick={() => handleStatusUpdate("rejected")} 
+            className="bg-red-600 hover:bg-red-700 text-white"
+            disabled={loading}
+          >
+            Reddet
           </Button>
-          <Button onClick={() => handleStatusUpdate("pending")} className="bg-yellow-500 text-white">
-            Beklemede
+          <Button 
+            // ✅ DÜZELTME: Sadece updatable status gönderiliyor
+            onClick={() => handleStatusUpdate("pending")} 
+            variant="secondary"
+            disabled={loading}
+          >
+            Beklemeye Al
           </Button>
         </div>
       </CardContent>
@@ -117,31 +167,35 @@ export function CandidateDetailCard({ application, onClose }: CandidateDetailCar
   );
 }
 
-// ✅ Durum renkleri
+// Durum renkleri (Backend'deki yeni durumlar dahil edildi)
 function getStatusBadge(status: Application["status"]) {
   const statusClasses: Record<Application["status"], string> = {
-    accepted: "bg-green-500 text-white",
-    rejected: "bg-red-500 text-white",
-    pending: "bg-yellow-500 text-white",
-    in_progress: "bg-blue-500 text-white",
-    completed: "bg-green-500 text-white",
+    accepted: "bg-green-600 text-white hover:bg-green-700",
+    rejected: "bg-red-600 text-white hover:bg-red-700",
+    pending: "bg-yellow-500 text-gray-800 hover:bg-yellow-600",
+    in_progress: "bg-blue-500 text-white hover:bg-blue-600",
+    completed: "bg-gray-700 text-white hover:bg-gray-800",
+    awaiting_ai_analysis: "bg-purple-600 text-white", 
+    awaiting_video_responses: "bg-indigo-500 text-white", 
   };
   return statusClasses[status] || "bg-gray-500 text-white";
 }
 
-// ✅ Status için Türkçe dönüşüm
+// Status için Türkçe dönüşüm
 function formatStatus(status: Application["status"]) {
   const statusMap: Record<Application["status"], string> = {
-    pending: "Beklemede",
-    in_progress: "Devam Ediyor",
-    completed: "Tamamlandı",
+    pending: "İK İncelemesi Bekleniyor",
+    in_progress: "Detaylar Tamamlandı",
+    completed: "Karar Bekleniyor",
     rejected: "Reddedildi",
     accepted: "Kabul Edildi",
+    awaiting_ai_analysis: "AI Analizi Yapılıyor",
+    awaiting_video_responses: "Video Yanıtları Bekleniyor",
   };
   return statusMap[status] || status;
 }
 
-// ✅ Tarih formatını düzenleme fonksiyonu
+// Tarih formatını düzenleme fonksiyonu
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString("tr-TR", {
     year: "numeric",

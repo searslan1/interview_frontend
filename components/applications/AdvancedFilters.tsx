@@ -1,41 +1,50 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
-import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ChevronDown } from "lucide-react"
+
+// ✅ Düzeltme denemesi: Next.js takma adlarını kullanıyoruz.
+import { DatePickerWithRange } from "@/components/ui/date-range-picker" 
 import { ApplicationFilters } from "@/types/application"
+import useApplicationStore from "@/store/applicationStore" 
 
 interface AdvancedFiltersProps {
-  onFilterChange: (filters: ApplicationFilters) => void
   interviews?: { id: string; title: string }[]
   personalityTypes?: string[]
 }
 
-export function AdvancedFilters({ onFilterChange, interviews = [], personalityTypes = [] }: AdvancedFiltersProps) {
-  const [filters, setFilters] = useState<ApplicationFilters>({
-    interviewId: "all",
-    dateRange: { from: undefined, to: undefined },
-    completionStatus: "all",
-    applicationStatus: "all",
-    experienceLevel: "all",
-    aiScoreMin: 0,
-    personalityType: "all",
-    searchTerm: "",
-  })
+export function AdvancedFilters({ interviews = [], personalityTypes = [] }: AdvancedFiltersProps) {
+  
+  const { filters, setFilters } = useApplicationStore(); 
+  
+  const [localFilters, setLocalFilters] = useState<Partial<ApplicationFilters>>(filters);
 
-  const handleFilterChange = <K extends keyof ApplicationFilters>(key: K, value: ApplicationFilters[K]) => {
-    setFilters((prev) => ({ ...prev, [key]: value }))
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters]);
+
+  const handleFilterChange = <K extends keyof ApplicationFilters>(key: K, value: ApplicationFilters[K] | undefined) => {
+    setLocalFilters((prev) => ({ ...prev, [key]: value }));
   }
 
   const applyFilters = () => {
-    onFilterChange(filters)
+    setFilters(localFilters);
   }
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const searchTerm = e.target.value;
+    setLocalFilters((prev) => ({ ...prev, searchTerm }));
+    if (searchTerm.length >= 3 || searchTerm.length === 0) {
+      setFilters({ ...localFilters, searchTerm });
+    }
+  }
+
 
   return (
     <Popover>
@@ -51,7 +60,7 @@ export function AdvancedFilters({ onFilterChange, interviews = [], personalityTy
           <div>
             <Label>Mülakat Seçimi</Label>
             {interviews.length > 0 && (
-              <Select value={filters.interviewId} onValueChange={(value) => handleFilterChange("interviewId", value)}>
+              <Select value={localFilters.interviewId} onValueChange={(value) => handleFilterChange("interviewId", value)}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Mülakat seçin" />
                 </SelectTrigger>
@@ -69,13 +78,16 @@ export function AdvancedFilters({ onFilterChange, interviews = [], personalityTy
 
           <div>
             <Label>Tarih Aralığı</Label>
-            <DatePickerWithRange onChange={(range) => handleFilterChange("dateRange", range)} />
+            {/* Prop hatası düzeltildi */}
+            <DatePickerWithRange 
+                onChange={(range) => handleFilterChange("dateRange", range as any)} 
+            />
           </div>
 
           <div>
             <Label>Tamamlanma Durumu</Label>
             <Select
-              value={filters.completionStatus}
+              value={localFilters.completionStatus}
               onValueChange={(value) => handleFilterChange("completionStatus", value as ApplicationFilters["completionStatus"])}
             >
               <SelectTrigger className="w-[180px]">
@@ -93,7 +105,7 @@ export function AdvancedFilters({ onFilterChange, interviews = [], personalityTy
           <div>
             <Label>Başvuru Durumu</Label>
             <Select
-              value={filters.applicationStatus}
+              value={localFilters.applicationStatus}
               onValueChange={(value) => handleFilterChange("applicationStatus", value as ApplicationFilters["applicationStatus"])}
             >
               <SelectTrigger className="w-[180px]">
@@ -110,12 +122,12 @@ export function AdvancedFilters({ onFilterChange, interviews = [], personalityTy
           </div>
 
           <div>
-            <Label>Minimum AI Uyum Puanı: {filters.aiScoreMin}</Label>
+            <Label>Minimum AI Uyum Puanı: {localFilters.aiScoreMin}</Label>
             <Slider
               min={0}
               max={100}
               step={1}
-              value={[filters.aiScoreMin]}
+              value={[localFilters.aiScoreMin as number]} 
               onValueChange={([value]) => handleFilterChange("aiScoreMin", value)}
             />
           </div>
@@ -124,7 +136,7 @@ export function AdvancedFilters({ onFilterChange, interviews = [], personalityTy
             <Label>Kişilik Tipi</Label>
             {personalityTypes.length > 0 && (
               <Select
-                value={filters.personalityType}
+                value={localFilters.personalityType}
                 onValueChange={(value) => handleFilterChange("personalityType", value)}
               >
                 <SelectTrigger className="w-[180px]">
@@ -147,8 +159,8 @@ export function AdvancedFilters({ onFilterChange, interviews = [], personalityTy
             <Input
               type="text"
               placeholder="Aday adı, ID veya anahtar kelime"
-              value={filters.searchTerm}
-              onChange={(e) => handleFilterChange("searchTerm", e.target.value)}
+              value={localFilters.searchTerm}
+              onChange={handleSearchChange} 
             />
           </div>
 
