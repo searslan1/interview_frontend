@@ -1,10 +1,21 @@
 // types/interview.ts
 
 /**
+ * Mülakatın durumu için enum
+ */
+export enum InterviewStatus {
+  ACTIVE = "active",
+  COMPLETED = "completed",
+  PUBLISHED = "published",
+  DRAFT = "draft",
+  INACTIVE = "inactive"
+}
+
+/**
  * Mülakat için her bir soru modeli
  */
 export interface InterviewQuestion {
-  _id?: string; // MongoDB ObjectId uyumlu hale getirildi
+  _id?: string;
   questionText: string;
   expectedAnswer: string;
   explanation?: string;
@@ -18,11 +29,13 @@ export interface InterviewQuestion {
   };
 }
 
+// --- CORE MODELLER ---
+
 /**
- * Mülakat modeli
+ * Mülakat modeli (API'dan gelen veri yapısı)
  */
 export interface Interview {
-  _id: string; // MongoDB ObjectId
+  _id: string; 
   title: string;
   expirationDate: string; // ISO formatlı tarih
   createdBy: {
@@ -36,12 +49,45 @@ export interface Interview {
   };
   interviewLink?: {
     link: string;
-    expirationDate?: string; // Backend Date olarak tutuyor ama frontend string olarak saklayacak
+    expirationDate?: string; 
   };
   questions: InterviewQuestion[];
-  createdAt: string; // ISO tarih formatında saklanacak
+  createdAt: string; 
   updatedAt: string;
 }
+
+/**
+ * Mülakat oluşturma DTO’su (POST /interviews)
+ */
+export interface CreateInterviewDTO {
+  title: string;
+  expirationDate: string | Date; // Hem string hem Date kabul et
+  personalityTestId?: string;
+  stages?: { // Optional yapıldı, backend'de default değer atılıyor
+    personalityTest: boolean;
+    questionnaire: boolean;
+  };
+  status?: InterviewStatus;
+  questions?: InterviewQuestion[];
+}
+
+/**
+ * Mülakat güncelleme DTO'su (PUT /interviews/:id)
+ * Tüm alanlar optional olmalı.
+ */
+export interface UpdateInterviewDTO {
+  title?: string;
+  expirationDate?: string | Date;
+  stages?: {
+    personalityTest: boolean;
+    questionnaire: boolean;
+  };
+  status?: InterviewStatus;
+  questions?: InterviewQuestion[];
+  personalityTestId?: string;
+}
+
+// --- STORE ve DİĞER MODELLER ---
 
 /**
  * Mülakat başvurusu modeli
@@ -56,92 +102,6 @@ export interface InterviewApplicant {
 }
 
 /**
- * Mülakat bildirim modeli
- */
-export interface InterviewNotification {
-  _id: string;
-  userId: string;
-  type: "reminder" | "other";
-  message: string;
-  createdAt: string;
-}
-
-/**
- * Mülakat sonucu modeli
- */
-export interface InterviewResult {
-  _id: string;
-  interviewId: string;
-  candidateId: string;
-  score: number;
-  comments: string;
-  reviewedBy: string;
-  reviewedAt: string;
-}
-
-/**
- * Mülakat oluşturma DTO’su
- */
-export interface CreateInterviewDTO {
-  title: string;
-  expirationDate: string; // ISO formatlı tarih
-  personalityTestId?: string;
-  stages: {
-    personalityTest: boolean;
-    questionnaire: boolean;
-  };
-  status?: InterviewStatus;
-  questions?: InterviewQuestion[];
-}
-
-/**
- * Mülakatın durumu için enum
- */
-export enum InterviewStatus {
-  ACTIVE = "active",
-  COMPLETED = "completed",
-  PUBLISHED = "published",
-  DRAFT = "draft",
-  INACTIVE = "inactive"
-}
-
-/**
- * Mülakat güncelleme DTO'su
- */
-export interface UpdateInterviewDTO {
-  title?: string;
-  expirationDate?: string;
-  stages?: {
-    personalityTest: boolean;
-    questionnaire: boolean;
-  };
-  status?: InterviewStatus;
-  questions?: InterviewQuestion[];
-  personalityTestId?: string;
-}
-
-/**
- * Mülakatın durumunu güncelleme DTO'su
- */
-export interface UpdateInterviewStatusDTO {
-  newStatus: InterviewStatus;
-}
-
-/**
- * Mülakatın sorularını güncelleme DTO'su
- */
-export interface UpdateInterviewQuestionsDTO {
-  questions: InterviewQuestion[];
-}
-
-/**
- * Mülakatın kişilik testini güncelleme DTO'su
- */
-export interface UpdatePersonalityTestDTO {
-  personalityTestId: string;
-}
-
-/**
  * Interview Store'un state tipi
  */
 export interface InterviewStoreState {
@@ -153,14 +113,16 @@ export interface InterviewStoreState {
 
 /**
  * Interview Store'un işlemlerini tanımlayan interface
+ * Frontend Store'un nihai metot listesini yansıtır.
  */
 export interface InterviewStoreActions {
   fetchInterviews: () => Promise<void>;
   getInterviewById: (id: string) => Promise<void>;
   createInterview: (data: CreateInterviewDTO) => Promise<void>;
-  updateInterview: (id: string, data: UpdateInterviewDTO) => Promise<void>;
+  // 🚨 Güncel tip: Partial<UpdateInterviewDTO> veya UpdateInterviewDTO olabilir
+  updateInterview: (id: string, data: Partial<UpdateInterviewDTO>) => Promise<void>;
+  // 🚨 Yeni eklenen yayınlama metodu
+  publishInterview: (id: string) => Promise<void>;
   deleteInterview: (id: string) => Promise<void>;
-  updateInterviewStatus: (id: string, newStatus: InterviewStatus) => Promise<void>;
-  updateInterviewQuestions: (id: string, questions: InterviewQuestion[]) => Promise<void>;
-  updatePersonalityTest: (id: string, personalityTestId: string) => Promise<void>;
 }
+

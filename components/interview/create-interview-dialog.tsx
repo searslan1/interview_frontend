@@ -70,6 +70,23 @@ export function CreateInterviewDialog({ open, onOpenChange }: CreateInterviewDia
       setLoading(false);
     }
   };
+  const onSubmitValidated = async (values: CreateInterviewDTO, status: InterviewStatus) => {
+    setLoading(true);
+    try {
+        const formattedData: CreateInterviewDTO = {
+            ...values,
+            status, 
+            // ... diğer formatlama işlemleri
+        };
+        await createInterview(formattedData);
+        setTimeout(() => onOpenChange(false), 100); 
+    } catch (error) {
+        console.error("Interview creation error:", error);
+        // Hata mesajını UI'a gösterin (örn: Toast)
+    } finally {
+        setLoading(false);
+    }
+};
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -109,18 +126,18 @@ export function CreateInterviewDialog({ open, onOpenChange }: CreateInterviewDia
           </Button>
           <div className="space-x-2">
             {/* ✅ Taslak olarak kaydetme butonu */}
-            <Button
-              variant="outline"
-              disabled={loading}
-              onClick={() => handleCreateInterview(InterviewStatus.DRAFT)}
-            >
+           <Button
+    variant="outline"
+    disabled={loading}
+    // Sadece Taslak Kaydı: Validasyon gerekmeyen alanları geç
+    onClick={() => onSubmitValidated(form.getValues(), InterviewStatus.DRAFT)} 
+>
               {loading ? <LoadingSpinner /> : "Taslak Olarak Kaydet"}
             </Button>
             {/* ✅ Yayınla butonu */}
             <Button
               disabled={loading}
-              onClick={() => handleCreateInterview(InterviewStatus.PUBLISHED)}
-            >
+onClick={form.handleSubmit((values) => onSubmitValidated(values, InterviewStatus.PUBLISHED))}            >
               {loading ? <LoadingSpinner /> : "Yayınla"}
             </Button>
           </div>

@@ -23,16 +23,26 @@ export function QuestionSelector({ selectedQuestions, onQuestionsChange }: Quest
     fetchQuestions(); // ✅ Component mount olduğunda API çağrısı
   }, [fetchQuestions]);
 
+  useEffect(() => {
+    // Ana formun soruları harici bir yerden değişirse (AI entegrasyonu), 
+    // yerel seçimi de güncelle
+    setLocalSelectedQuestions(selectedQuestions);
+  }, [selectedQuestions]);
   const handleQuestionToggle = (question: InterviewQuestion) => {
     setLocalSelectedQuestions((prev) =>
-      prev.some((q) => q.id === question.id)
-        ? prev.filter((q) => q.id !== question.id)
+      prev.some((q) => q._id === question._id)
+        ? prev.filter((q) => q._id !== question._id)
         : [...prev, { ...question, keywords: question.keywords ?? [] }] 
     );
   };
 
   const handleSave = () => {
-    onQuestionsChange(localSelectedQuestions);
+    const cleanedQuestions = localSelectedQuestions.map(({ _id, ...rest }) => ({
+        ...rest,
+        // DTO'da olmaması gereken 'id' alanını silmek için:
+        // (Eğer seçilen sorunun içinde MongoDB _id'den farklı bir 'id' varsa onu da silin)
+    }));
+    // onQuestionsChange(localSelectedQuestions); // Mevcut hali korundu
     setIsOpen(false);
   };
 
@@ -51,13 +61,13 @@ export function QuestionSelector({ selectedQuestions, onQuestionsChange }: Quest
         ) : (
           <div className="grid gap-4 py-4">
             {questions.map((question) => (
-              <div key={question.id} className="flex items-center space-x-2">
+              <div key={question._id} className="flex items-center space-x-2">
                 <Checkbox
-                  id={question.id}
-                  checked={localSelectedQuestions.some((q) => q.id === question.id)}
+                  id={question._id}
+                  checked={localSelectedQuestions.some((q) => q._id === question._id)}
                   onCheckedChange={() => handleQuestionToggle(question)}
                 />
-                <label htmlFor={question.id} className="text-sm font-medium">{question.questionText}</label>
+                <label htmlFor={question._id} className="text-sm font-medium">{question.questionText}</label>
               </div>
             ))}
           </div>

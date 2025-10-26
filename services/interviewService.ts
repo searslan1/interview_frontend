@@ -1,5 +1,6 @@
 import {api }from "@/utils/api";
 import { CreateInterviewDTO, Interview } from "@/types/interview";
+import { UpdateInterviewDTO } from "@/types/updateInterviewDTO"; // Backend'deki DTO'lar ile uyum için eklendi
 
 export const interviewService = {
   /**
@@ -7,22 +8,28 @@ export const interviewService = {
    */
   async createInterview(data: CreateInterviewDTO): Promise<Interview> {
     // ✅ Tarihi backend'e uygun hale getiriyoruz
-    const formattedData: CreateInterviewDTO = {
+    const formattedData: Partial<CreateInterviewDTO> = {
       ...data,
-      expirationDate: new Date(data.expirationDate).toISOString(), // ✅ ISO format
-      questions: data.questions?.map(({ _id, aiMetadata, ...rest }) => ({
-        ...rest,
-        aiMetadata: {
-          complexityLevel: aiMetadata.complexityLevel,
-          requiredSkills: aiMetadata.requiredSkills,
-        }, // ✅ Gereksiz alanlar çıkarıldı
-      })) || [],
+      // Frontend'de Date objesi veya timestamp gelebilir, ISO formatına çevriliyor
+      expirationDate: new Date(data.expirationDate).toISOString(), 
+      // Backend'in beklediği DTO'ya uymayan alanları (örneğin _id) temizliyoruz
+      questions: data.questions?.map((q) => {
+        // Alt şemadaki gereksiz MongoDB ID'sini kaldırıyoruz
+        const { _id, aiMetadata, ...rest } = q as any; 
+        return {
+          ...rest,
+          aiMetadata: {
+            complexityLevel: aiMetadata.complexityLevel,
+            requiredSkills: aiMetadata.requiredSkills,
+          }, 
+        };
+      }) || [],
     };
 
-    const response = await api.post("/interviews/create", formattedData);
-    return response.data.data; // ✅ Backend `data` içinde döndürüyor
+    // 🚨 Endpoint Düzeltmesi: '/interviews/create' yerine '/' kullanıldı
+    const response = await api.post("/interviews", formattedData);
+    return response.data.data; 
   },
-
 
 
   /**
@@ -31,9 +38,10 @@ export const interviewService = {
   async getUserInterviews(): Promise<Interview[]> {
     try {
       const response = await api.get("/interviews/my");
-      return response.data.data; // ✅ Backend `data.data` içinde döndürüyor
+      return response.data.data; 
     } catch (error: any) {
       console.error("Kullanıcının mülakatlarını çekerken hata oluştu:", error);
+      // Hata middleware'i tarafından yakalanıp daha temiz bir mesaj gösterilmesi beklenebilir.
       throw new Error("Mülakatlar yüklenemedi, lütfen tekrar deneyin.");
     }
   },
@@ -44,7 +52,7 @@ export const interviewService = {
   async getInterviewById(id: string): Promise<Interview> {
     try {
       const response = await api.get(`/interviews/${id}`);
-      return response.data.data; // ✅ Backend'deki `data` alanına erişiyoruz.
+      return response.data.data; 
     } catch (error: any) {
       console.error("Mülakat getirilirken hata oluştu:", error);
       throw new Error(error.response?.data?.message || "Mülakat bulunamadı.");
@@ -52,47 +60,54 @@ export const interviewService = {
   },
 
   /**
-   * Mülakatı güncelleme
+   * Mülakatı güncelleme (PUT /:id rotasına tüm güncellemeleri toplar)
    */
-  async updateInterview(id: string, updateData: Partial<{ 
-    title: string; 
-    expirationDate: string | number; 
-    stages: { personalityTest: boolean; questionnaire: boolean }; 
-    questions?: any[]; 
-    personalityTestId?: string;
-  }>) {
-    const response = await api.put(`/interview/${id}`, updateData);
-    return response.data;
+  async updateInterview(id: string, updateData: Partial<UpdateInterviewDTO>): Promise<Interview> {
+    // Güncelleme verisinde tarih varsa, ISO formatına çevir
+    const payload = { ...updateData } as any;
+    if (payload.expirationDate) {
+      payload.expirationDate = new Date(payload.expirationDate).toISOString();
+    }
+    
+    // 🚨 Endpoint Düzeltmesi: '/interview/' (tekil) yerine '/interviews/' (çoğul) kullanıldı.
+    const response = await api.put(`/interviews/${id}`, payload);
+    return response.data.data; 
   },
 
   /**
-   * Mülakatı silme
+   * Mülakatı yayınlama (Backend'deki PATCH /:id/publish rotasına uyar)
+   */
+  async publishInterview(id: string): Promise<Interview> {
+    // 🚨 Yeni Metot ve Endpoint: PATCH /:id/publish
+    // Backend'deki Controller/Service mantığına uyum sağlandı.
+    const response = await api.patch(`/interviews/${id}/publish`);
+    return response.data.data;
+  },
+
+  /**
+   * Mülakatı silme (Soft Delete)
    */
   async deleteInterview(id: string) {
-    await api.delete(`/interview/${id}`);
+    // 🚨 Endpoint Düzeltmesi: '/interview/' (tekil) yerine '/interviews/' (çoğul) kullanıldı.
+    // Backend'de soft delete bu rotada yapılıyor.
+    await api.delete(`/interviews/${id}`);
+  },
+  
+  /**
+   * Mülakat Linkini Güncelleme (Endpoint'i koruyoruz)
+   */
+  async generateInterviewLink(id: string, expirationDate?: string | number): Promise<Interview> {
+    const payload = { 
+      expirationDate: expirationDate ? new Date(expirationDate).toISOString() : undefined
+    };
+    
+    // 🚨 Endpoint Düzeltmesi: '/interview/' (tekil) yerine '/interviews/' (çoğul) kullanıldı.
+    const response = await api.patch(`/interviews/${id}/link`, payload);
+    return response.data.data; 
   },
 
-  /**
-   * Mülakatın durumunu güncelleme (Örneğin: Draft -> Published)
-   */
-  async updateInterviewStatus(id: string, newStatus: "active" | "completed" | "published" | "draft" | "inactive") {
-    const response = await api.put(`/interview/${id}/status`, { newStatus });
-    return response.data;
-  },
-
-  /**
-   * Mülakatın sorularını güncelleme
-   */
-  async updateInterviewQuestions(id: string, questions: any[]) {
-    const response = await api.patch(`/interview/${id}/questions`, { questions });
-    return response.data;
-  },
-
-  /**
-   * Mülakatın kişilik testi ID’sini güncelleme
-   */
-  async updatePersonalityTest(id: string, personalityTestId: string) {
-    const response = await api.patch(`/interview/${id}/personality-test`, { personalityTestId });
-    return response.data;
-  },
+  // 🚨 KALDIRILAN METOTLAR:
+  // updateInterviewStatus: Backend'de kaldırıldı, yerine publishInterview eklendi.
+  // updateInterviewQuestions: Mantığı updateInterview içine alındı.
+  // updatePersonalityTest: Mantığı updateInterview içine alındı.
 };

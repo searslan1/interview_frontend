@@ -30,7 +30,7 @@ const formSchema = z.object({
   }),
   questions: z.array(
     z.object({
-      id: z.string(),
+      //id: z.string(),
       questionText: z.string(),
       expectedAnswer: z.string(),
       order: z.number(),
@@ -59,27 +59,31 @@ export default function AddInterviewForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) {
+    if (!user || !user._id) {
       alert("Giriş yapmalısınız.");
       return;
     }
 
-    const newInterview = {
-      ...values,
-      createdBy: { userId: user._id },
+   const payload = {
+      title: values.title,
+      description: values.description,
+      expirationDate: values.expirationDate, // Servis katmanında ISO'ya çevriliyor
+      stages: values.stages,
+      // keywords: null geliyorsa boş array ata
       questions: values.questions.map((q) => ({
         ...q,
-        keywords: q.keywords ?? [], // ✅ Varsayılan olarak boş array atanıyor
+        keywords: q.keywords ?? [], 
       })),
+      // personalityTestId: undefined (Zod'da tanımlanmadıysa)
     };
 
-    try {
-      await createInterview({
-        ...newInterview,
-        expirationDate: newInterview.expirationDate.toISOString(),
-      });
+   try {
+      await createInterview(payload); // 🚨 Düzeltme: Yalnızca DTO gönderildi
+
       alert("Mülakat başarıyla oluşturuldu.");
+      // Formu sıfırla veya yönlendir
     } catch (error) {
+      // Hata mesajını backend'den alıp göstermek gerekiyor (Bkz: Hata Yakalama)
       console.error("Mülakat oluşturulurken hata:", error);
       alert("Bir hata oluştu.");
     }

@@ -3,12 +3,14 @@ import { interviewService } from "@/services/interviewService";
 import {
   Interview,
   CreateInterviewDTO,
-  UpdateInterviewDTO,
+  // UpdateInterviewDTO, // Artık types/interview içinde değil, ayrı import edilmeli
   InterviewStoreState,
   InterviewStoreActions,
-  InterviewQuestion,
   InterviewStatus,
 } from "@/types/interview";
+// UpdateInterviewDTO'yu doğru yerden import edin (varsayımsal olarak types/updateInterviewDTO)
+import { UpdateInterviewDTO } from "@/types/updateInterviewDTO";
+
 
 interface InterviewStore extends InterviewStoreState, InterviewStoreActions {}
 
@@ -37,7 +39,7 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
    * Belirli bir mülakatı ID ile API'dan getirme
    */
   getInterviewById: async (id: string) => {
-    set({ loading: true, error: null, selectedInterview: null }); // ✅ Önce state sıfırlanıyor
+    set({ loading: true, error: null, selectedInterview: null }); 
     try {
       const data = await interviewService.getInterviewById(id);
       set({ selectedInterview: data, loading: false });
@@ -55,13 +57,14 @@ createInterview: async (data: CreateInterviewDTO): Promise<void> => {
   try {
     const newInterview = await interviewService.createInterview(data);
     
-    // **State Güncelleme**
+    // **State Güncelleme**: Yeni mülakatı listenin başına ekleyelim (en yeni üstte olur)
     set((state) => ({
-      interviews: [...state.interviews, newInterview], // Yeni mülakatı listeye ekle
+      interviews: [newInterview, ...state.interviews], 
       loading: false,
     }));
 
   } catch (error: any) {
+    // API'dan gelen error.response?.data?.message yapısını kullan
     set({ error: error.response?.data?.message || "Mülakat oluşturulurken hata oluştu", loading: false });
   }
 },
@@ -71,21 +74,46 @@ createInterview: async (data: CreateInterviewDTO): Promise<void> => {
   /**
    * Mevcut bir mülakatı güncelleme
    */
-  updateInterview: async (id: string, updateData: UpdateInterviewDTO) => {
+  updateInterview: async (id: string, updateData: Partial<UpdateInterviewDTO>) => {
     set({ loading: true, error: null });
     try {
-      const formattedData = {
-        ...updateData,
-        stages: updateData.stages ?? { personalityTest: false, questionnaire: false }, // ✅ Varsayılan değerler eklendi
-      };
-  
-      await interviewService.updateInterview(id, formattedData);
-      await get().fetchInterviews();
+      const updatedInterview = await interviewService.updateInterview(id, updateData);
+      
+      // **State Güncelleme**: Yalnızca güncellenen mülakatı listede değiştir
+      set((state) => ({
+        interviews: state.interviews.map((i) =>
+            i._id === id ? { ...i, ...updatedInterview } : i
+        ),
+        selectedInterview: state.selectedInterview?._id === id ? updatedInterview : state.selectedInterview,
+        loading: false,
+      }));
+
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || "Mülakat güncellenirken hata oluştu", loading: false });
     }
   },
   
+  /**
+   * Mülakatı yayınlama (Publish)
+   */
+  publishInterview: async (id: string) => {
+    set({ loading: true, error: null });
+    try {
+      const updatedInterview = await interviewService.publishInterview(id);
+
+      // **State Güncelleme**: Mülakatın durumunu PUBLISHED olarak güncelle ve selectedInterview'ı da güncelle
+      set((state) => ({
+        interviews: state.interviews.map((i) =>
+            i._id === id ? { ...i, status: updatedInterview.status } : i
+        ),
+        selectedInterview: state.selectedInterview?._id === id ? updatedInterview : state.selectedInterview,
+        loading: false,
+      }));
+
+    } catch (error: any) {
+      set({ error: error.response?.data?.message || "Mülakat yayınlanırken hata oluştu", loading: false });
+    }
+  },
 
   /**
    * Mülakatı silme
@@ -94,51 +122,15 @@ createInterview: async (data: CreateInterviewDTO): Promise<void> => {
     set({ loading: true, error: null });
     try {
       await interviewService.deleteInterview(id);
+      
+      // **State Güncelleme**: Silinen mülakatı listeden filtrele
       set((state) => ({
         interviews: state.interviews.filter((interview) => interview._id !== id),
+        selectedInterview: state.selectedInterview?._id === id ? null : state.selectedInterview,
         loading: false,
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
-    }
-  },
-
-  /**
-   * Mülakatın durumunu güncelleme
-   */
-  updateInterviewStatus: async (id: string, newStatus: InterviewStatus) => {
-    set({ loading: true, error: null });
-    try {
-      await interviewService.updateInterviewStatus(id, newStatus);
-      await get().fetchInterviews();
-    } catch (error: any) {
-      set({ error: error.message, loading: false });
-    }
-  },
-
-  /**
-   * Mülakatın sorularını güncelleme
-   */
-  updateInterviewQuestions: async (id: string, questions: InterviewQuestion[]) => {
-    set({ loading: true, error: null });
-    try {
-      await interviewService.updateInterviewQuestions(id, questions);
-      await get().fetchInterviews();
-    } catch (error: any) {
-      set({ error: error.message, loading: false });
-    }
-  },
-
-  /**
-   * Mülakata kişilik testi ID'si ekleme
-   */
-  updatePersonalityTest: async (id: string, personalityTestId: string) => {
-    set({ loading: true, error: null });
-    try {
-      await interviewService.updatePersonalityTest(id, personalityTestId);
-      await get().fetchInterviews();
-    } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || "Mülakat silinirken hata oluştu", loading: false });
     }
   },
 }));

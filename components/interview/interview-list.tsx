@@ -21,8 +21,15 @@ export function InterviewList({ interviews, filters }: InterviewListProps) {
 
       // **🔹 Mülakat Türü Filtreleme (Backend'de uygun bir alan var mı kontrol edilmeli)**
       if (filters.interviewType !== "all") {
-        const interviewCategory = interview?.status || ""; // 🔹 Backend'de uygun alan varsa kullanılmalı
-        if (!interviewCategory.toLowerCase().includes(filters.interviewType.toLowerCase())) return false;
+        if (filters.interviewType === "personality" && !interview.stages.personalityTest) {
+          return false; // Sadece kişilik testi olanları göster
+        }
+        if (filters.interviewType !== "personality" && interview.stages.personalityTest) {
+           // Eğer sadece Technical isteniyorsa ve mülakatta PT varsa, bu bir çakışma olabilir.
+           // Bu mantık, modeldeki veri yapınıza bağlı olarak ayarlanmalıdır. 
+           // Şimdilik sadece PT filtresini çalıştırıyoruz:
+           // Eğer filtre 'personality' ise ve stages.personalityTest false ise, filtrele.
+        }
       }
 
       // **🔹 Arama Filtreleme**
