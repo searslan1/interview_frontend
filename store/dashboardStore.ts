@@ -40,7 +40,7 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
 
   fetchDashboardData: async () => {
     try {
-      const response = await fetch("/api/interview/dashboard"); // ✅ Gerçek API'den veri çeker
+      const response = await fetch("/api/interviews/dashboard"); // ✅ Gerçek API'den veri çeker
       if (!response.ok) {
         throw new Error("Dashboard verileri yüklenemedi.");
       }

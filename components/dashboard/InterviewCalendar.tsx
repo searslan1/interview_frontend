@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AppointmentForm } from "@/components/dashboard/AppointmentForm";
 import { AppointmentList } from "@/components/dashboard/AppointmentList";
 import { useAppointmentStore } from "@/store/appointmentStore";
-import { Appointment } from "@/types/appointment";
 
 export function InterviewCalendar() {
   const [date, setDate] = useState<Date | undefined>(new Date());
