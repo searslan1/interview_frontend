@@ -14,6 +14,7 @@ interface DatePickerProps {
   date: Date | undefined
   onSelect: (date: Date | undefined) => void
 }
+const isDateValid = (d: Date | undefined): d is Date => d instanceof Date && !isNaN(d.getTime());
 
 export function DatePicker({ date, onSelect }: DatePickerProps) {
   return (
@@ -24,7 +25,7 @@ export function DatePicker({ date, onSelect }: DatePickerProps) {
           className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>Pick a date</span>}
+          {isDateValid(date) ? format(date, "PPP") : <span>Pick a date</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">

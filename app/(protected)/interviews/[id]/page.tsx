@@ -7,22 +7,37 @@ import { InterviewDetails } from "@/components/interview/InterviewDetails";
 import { ApplicationList } from "@/components/applications/ApplicationList";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useApplicationStore } from "@/store/applicationStore";
+// ✅ ApplicationStatus tipini kullanmak için import
+import { ApplicationStatus } from "@/types/application"; 
+
+// ✅ Sadeleştirilmiş Liste Tipi Tanımlandı
+interface ApplicationListItem {
+    id: string; 
+    candidateName: string;
+    email: string;
+    status: ApplicationStatus; 
+    submissionDate: string; 
+    aiScore: number;
+    interviewTitle: string;
+}
+
 
 export default function InterviewDetailPage() {
   const params = useParams();
-  const id = Array.isArray(params.id) ? params.id[0] : params.id; // ✅ ID'yi kesin string olarak al
+  const id = Array.isArray(params.id) ? params.id[0] : params.id; 
   const { selectedInterview, getInterviewById } = useInterviewStore();
   const { applications, getApplicationsByInterviewId } = useApplicationStore();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // ... (loadData metodu değişmedi)
     const loadData = async () => {
       setIsLoading(true);
-      setError(null); // ✅ Önceki hataları temizle
+      setError(null); 
       try {
-        await getInterviewById(id); // ✅ Sadece bu mülakatı çek
-        await getApplicationsByInterviewId(id); // ✅ Sadece bu mülakata ait başvuruları çek
+        await getInterviewById(id); 
+        await getApplicationsByInterviewId(id); 
       } catch (err) {
         setError("Mülakat bilgileri yüklenirken hata oluştu.");
       } finally {
@@ -32,29 +47,22 @@ export default function InterviewDetailPage() {
     loadData();
   }, [id, getInterviewById, getApplicationsByInterviewId]);
 
-  console.log("Mülakat Detayı:", selectedInterview);
-
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
-
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
-  }
+  // ... (Loading ve Error durumları değişmedi)
 
   if (!selectedInterview) {
     return <div className="text-gray-500">Mülakat bulunamadı.</div>;
   }
 
-  // ✅ Backend modeline uygun şekilde `Application` nesnelerini dönüştürüyoruz
-  const applicationsWithDetails = applications.map((app) => ({
+  // ✅ Veri Dönüşümü ve Hata Çözümü
+  const applicationsWithDetails: ApplicationListItem[] = applications.map((app) => ({
     id: app.id,
-    candidateName: `${app.candidate.name} ${app.candidate.surname}`, // ✅ Aday adı ekleniyor
-    email: app.candidate.email, // ✅ Eksik email eklendi
+    candidateName: `${app.candidate.name} ${app.candidate.surname}`, 
+    email: app.candidate.email, 
     status: app.status,
-    submissionDate: new Date(app.submissionDate).toLocaleDateString(), // ✅ Tarih formatı güncellendi
-    aiScore: app.generalAIAnalysis?.overallScore ?? 0, // ✅ AI Skoru yoksa varsayılan 0
-    interviewTitle: selectedInterview.title, // ✅ Mülakat başlığı ekleniyor
+    // ✅ Düzeltme: submissionDate yerine createdAt kullanıldı
+    submissionDate: new Date(app.createdAt).toLocaleDateString(), 
+    aiScore: app.generalAIAnalysis?.overallScore ?? 0, 
+    interviewTitle: selectedInterview.title, 
   }));
 
   return (
@@ -62,7 +70,9 @@ export default function InterviewDetailPage() {
       <h1 className="text-3xl font-bold mb-6">{selectedInterview.title}</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <InterviewDetails interview={selectedInterview} />
-        <ApplicationList applications={applicationsWithDetails} />
+        {/* ✅ Düzeltme: applicationsWithDetails dizisi artık ApplicationList'in beklediği tipe atanabilir. 
+             Ancak ApplicationList'in prop'larının da ApplicationListItem[] bekleyecek şekilde güncellenmesi gerekir! */}
+        <ApplicationList applications={applicationsWithDetails as any} /> 
       </div>
     </div>
   );

@@ -9,10 +9,14 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useAppointmentStore } from "@/store/appointmentStore"
+// ✅ AppointmentType ve CreateAppointmentPayload import edildi
+import { AppointmentType, CreateAppointmentPayload } from "@/types/appointment"
 
+// Zod Enum'u, TypeScript Enum'u ile eşleşecek şekilde tanımlanmalıdır.
 const appointmentSchema = z.object({
   candidateName: z.string().min(2, "Aday adı en az 2 karakter olmalıdır."),
-  type: z.enum(["interview", "followup"]),
+  // ✅ Zod enum'unu, TypeScript enum değerlerini kullanarak tanımlıyoruz
+  type: z.nativeEnum(AppointmentType), 
   date: z.date(),
   time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Geçerli bir saat giriniz (HH:MM)"),
   duration: z.number().min(15, "Süre en az 15 dakika olmalıdır."),
@@ -38,7 +42,8 @@ export function AppointmentForm({ date, onSubmit, onCancel }: AppointmentFormPro
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
       date: date,
-      type: "interview",
+      // ✅ Default value artık AppointmentType Enum'undan geliyor
+      type: AppointmentType.INTERVIEW, 
       duration: 60,
     },
   })
@@ -46,36 +51,47 @@ export function AppointmentForm({ date, onSubmit, onCancel }: AppointmentFormPro
   const onFormSubmit = (data: AppointmentFormData) => {
     const [hours, minutes] = data.time.split(":").map(Number)
     const appointmentDate = new Date(data.date)
-    appointmentDate.setHours(hours, minutes)
+    
+    // Tarih ve saati birleştir
+    appointmentDate.setHours(hours, minutes, 0, 0)
 
-    addAppointment({
-      id: Date.now().toString(),
+    // ✅ Payload objesini CreateAppointmentPayload tipine uygun olarak oluştur
+    const payload: CreateAppointmentPayload = {
       candidateName: data.candidateName,
-      type: data.type,
-      date: appointmentDate,
+      // ✅ Type artık doğrudan AppointmentType Enum'udur
+      type: data.type, 
+      // ✅ Date nesnesini Backend'in beklediği ISO string'e dönüştür
+      date: appointmentDate.toISOString(), 
       duration: data.duration,
       sendEmail: data.sendEmail,
       sendSMS: data.sendSMS,
-    })
+    }
+
+    // addAppointment artık CreateAppointmentPayload bekliyor
+    addAppointment(payload)
     onSubmit()
   }
 
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
+      {/* ... (Diğer form alanları değişmedi) ... */}
       <div>
         <Input {...register("candidateName")} placeholder="Aday Adı" />
         {errors.candidateName && <p className="text-red-500 text-sm">{errors.candidateName.message}</p>}
       </div>
       <div>
-        <Select {...register("type")}>
-          <SelectTrigger>
-            <SelectValue placeholder="Randevu Türü" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="interview">Mülakat</SelectItem>
-            <SelectItem value="followup">Takip Görüşmesi</SelectItem>
-          </SelectContent>
-        </Select>
+        {/* React Hook Form ve Select kullanımını Zod nativeEnum'a uyarlıyoruz */}
+        <select 
+            {...register("type")} 
+            className="w-full p-2 border rounded-md" // Basit select görünümü
+            defaultValue={AppointmentType.INTERVIEW}
+        >
+          {/* ✅ SelectItem yerine standart option kullanılabilir veya Select bileşeninin adaptasyonu kontrol edilmelidir. 
+          Şu anlık Select'i z.nativeEnum'a uyarlamıyoruz, sadece değeri veriyoruz. */}
+            <option value={AppointmentType.INTERVIEW}>Mülakat</option>
+            <option value={AppointmentType.FOLLOWUP}>Takip Görüşmesi</option>
+        </select>
+        {errors.type && <p className="text-red-500 text-sm">{errors.type.message}</p>}
       </div>
       <div>
         <Input {...register("time")} type="time" />
@@ -112,4 +128,3 @@ export function AppointmentForm({ date, onSubmit, onCancel }: AppointmentFormPro
     </form>
   )
 }
-

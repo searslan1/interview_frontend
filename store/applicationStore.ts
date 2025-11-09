@@ -3,14 +3,13 @@
 import { create } from 'zustand';
 import { Application, ApplicationFilters } from '@/types/application'; // ✅ ApplicationFilters import edildi
 import { 
-  getApplicationById, 
-  getApplications, 
+  getApplicationsByInterviewId,
   getFilteredApplications, // ✅ Yeni import
   updateApplicationStatus // ✅ Yeni import
 } from '@/services/applicationService';
 
 // ✅ YENİ TİP: Filtreler ve Sayfalama Bilgileri ile Genişletildi
-interface ApplicationStore {
+ interface ApplicationStore {
   applications: Application[];
   application: Application | null;
   loading: boolean;
@@ -30,10 +29,11 @@ interface ApplicationStore {
   fetchApplications: (page?: number) => Promise<void>; // Artık page alabilir
   fetchApplication: (id: string) => Promise<void>;
   updateStatus: (id: string, newStatus: 'pending' | 'rejected' | 'accepted') => Promise<void>;
+  getApplicationsByInterviewId: (interviewId: string) => Promise<void>;
   clearApplication: () => void;
 }
 
-const useApplicationStore = create<ApplicationStore>((set, get) => ({
+export const useApplicationStore = create<ApplicationStore>((set, get) => ({
   applications: [],
   application: null,
   loading: false,
@@ -111,6 +111,24 @@ const useApplicationStore = create<ApplicationStore>((set, get) => ({
   clearApplication: () => {
     set({ application: null, error: null });
   },
+  // ✅ YENİ AKSİYON: Mülakat ID'sine göre başvuruları getirir (Mülakat Detay Sayfası için)
+  getApplicationsByInterviewId: async (interviewId: string) => {
+    set({ loading: true, error: null });
+    try {
+        const applications = await getApplicationsByInterviewId(interviewId);
+        
+        // Bu metot, genellikle sadece ilgili başvuruları getirir, genel paginasyonu etkilemez.
+        set({ 
+            applications: applications,
+            // NOT: Burada pagination verisini güncellemiyoruz, çünkü bu genel liste değil.
+        });
+    } catch (error: any) {
+        set({
+            error: error.response?.data?.message || 'Mülakat başvuruları getirilirken hata oluştu.',
+        });
+    } finally {
+        set({ loading: false });
+    }
+  },
 }));
 
-export default useApplicationStore;

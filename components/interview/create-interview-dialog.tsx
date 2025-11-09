@@ -137,7 +137,16 @@ export function CreateInterviewDialog({ open, onOpenChange }: CreateInterviewDia
             {/* ✅ Yayınla butonu */}
             <Button
               disabled={loading}
-onClick={form.handleSubmit((values) => onSubmitValidated(values, InterviewStatus.PUBLISHED))}            >
+onClick={form.handleSubmit((values) => onSubmitValidated(values, InterviewStatus.PUBLISHED),
+  (errors) => {
+                      // Hata varsa konsola yazdır ve kullanıcıya bildir
+                      console.error("ZOD VALIDATION FAILED:", errors);
+                      const firstError = Object.values(errors)[0]?.message || 'Lütfen tüm zorunlu alanları doldurun.';
+                      alert(`Yayınlama hatası: ${firstError}`); 
+                      // NOT: Console'daki 'ZOD VALIDATION FAILED' çıktısı, size hangi alanın boş kaldığını gösterecektir.
+                  }
+              )}   
+         >
               {loading ? <LoadingSpinner /> : "Yayınla"}
             </Button>
           </div>

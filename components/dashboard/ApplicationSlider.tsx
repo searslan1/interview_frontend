@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import useApplicationStore from "@/store/applicationStore";
+import {useApplicationStore} from "@/store/applicationStore";
 import type { Application } from "@/types/application";
 
 export function ApplicationSlider() {

@@ -16,7 +16,7 @@ const transformAppointmentDates = (data: any): Appointment => {
 };
 
 export class AppointmentService {
-    private basePath = "/api/appointments";
+    private basePath = "/appointments";
 
     /**
      * Tüm randevuları API'den çeker. (GET /api/appointments)

@@ -3,7 +3,7 @@ import { InterviewStatus } from "./interview";
 
 export const createInterviewSchema = z.object({
   title: z.string().min(2, "Mülakat adı en az 2 karakter olmalıdır."),
-  description: z.string().min(10, "Açıklama en az 10 karakter olmalıdır."),
+  description: z.string().optional().or(z.literal("")),
   expirationDate: z.string(), // ✅ ISO format uyumlu
   personalityTestId: z.string().optional(),
   status: z.nativeEnum(InterviewStatus).default(InterviewStatus.DRAFT),

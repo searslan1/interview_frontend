@@ -1,91 +1,126 @@
 "use client";
 
 import { create } from "zustand";
-import type { Appointment } from "@/types/appointment";
+import type { Appointment, PlainAppointment, CreateAppointmentPayload } from "@/types/appointment";
+// ✅ Yeni servis import edildi
+import { appointmentService } from "@/services/appointmentService";
+import { toast } from "@/components/ui/use-toast"; // ✅ Hata bildirimi için toast import edildi
 
-// Plain obje olarak saklayacağımız randevu tipi:
-type PlainAppointment = Omit<Appointment, "date"> & { date: string };
 
 interface AppointmentStore {
   appointments: PlainAppointment[];
   fetchAppointments: () => Promise<void>;
-  addAppointment: (appointment: Appointment) => Promise<void>;
+  // Payload tipi, servisin beklediği tipe (ISO string) göre güncellendi
+  addAppointment: (payload: CreateAppointmentPayload) => Promise<void>;
   deleteAppointment: (id: string) => Promise<void>;
-  sendReminder: (appointment: PlainAppointment) => Promise<void>;
+  sendReminder: (id: string, candidateName: string) => Promise<void>; // Sadece ID gönderimi daha mantıklı
 }
+
+/**
+ * Helper: API'den gelen Appointment objesini (Date nesneleri içerir), 
+ * Zustand'da saklanacak PlainAppointment objesine (ISO string'ler içerir) dönüştürür.
+ */
+const toPlainAppointment = (appointment: Appointment): PlainAppointment => ({
+    ...appointment,
+    date: appointment.date.toISOString(),
+    createdAt: appointment.createdAt.toISOString(),
+    updatedAt: appointment.updatedAt.toISOString(),
+});
+
 
 export const useAppointmentStore = create<AppointmentStore>((set, get) => ({
   appointments: [],
 
-  // ✅ API'den randevuları çek
+  // --- 1. Randevuları Çekme ---
   fetchAppointments: async () => {
     try {
-      const response = await fetch("/api/appointments");
-      if (!response.ok) throw new Error("Randevular yüklenemedi.");
+      // ✅ Servis çağrısı kullanıldı
+      const data = await appointmentService.fetchAppointments();
+      
+      if (data && data.length > 0) {
+        set({
+            // ✅ Verileri ISO string'e dönüştürerek state'e kaydet
+            appointments: data.map(toPlainAppointment)
+        });
+      }
 
-      const data: Appointment[] = await response.json();
-
-      set({
-        appointments: data.map((appointment) => ({
-          ...appointment,
-          // Date nesnesi yerine ISO string kullanıyoruz
-          date: new Date(appointment.date).toISOString(),
-        })),
-      });
     } catch (error) {
       console.error("Randevular çekilirken hata oluştu:", error);
+      toast({
+          title: "Hata",
+          description: "Randevu listesi yüklenemedi.",
+          variant: "destructive",
+      });
     }
   },
 
-  // ✅ Yeni randevu ekle
-  addAppointment: async (appointment) => {
+  // --- 2. Yeni Randevu Ekleme ---
+  addAppointment: async (payload) => {
     try {
-      const response = await fetch("/api/appointments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(appointment),
-      });
-      if (!response.ok) throw new Error("Randevu eklenemedi.");
+      // ✅ Servis çağrısı kullanıldı
+      const newAppointment = await appointmentService.createAppointment(payload);
 
-      const newAppointment: Appointment = await response.json();
-
-      set((state) => ({
-        appointments: [
-          ...state.appointments,
-          {
-            ...newAppointment,
-            date: new Date(newAppointment.date).toISOString(),
-          },
-        ],
-      }));
+      if (newAppointment) {
+          set((state) => ({
+            appointments: [
+              ...state.appointments,
+              // ✅ Yeni randevuyu ISO string'e dönüştürerek ekle
+              toPlainAppointment(newAppointment),
+            ],
+          }));
+          
+          toast({
+              title: "Başarılı",
+              description: `${newAppointment.candidateName} için randevu oluşturuldu.`,
+          });
+      }
     } catch (error) {
       console.error("Randevu eklerken hata oluştu:", error);
+      throw error; // Formdan gelen hatayı yakalaması için tekrar fırlatılabilir
     }
   },
 
-  // ✅ Randevu sil
+  // --- 3. Randevu Silme ---
   deleteAppointment: async (id) => {
     try {
-      const response = await fetch(`/api/appointments/${id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Randevu silinemedi.");
+      // ✅ Servis çağrısı kullanıldı
+      await appointmentService.deleteAppointment(id);
 
       set((state) => ({
+        // ✅ State'ten sil
         appointments: state.appointments.filter((appointment) => appointment.id !== id),
       }));
+      
+      toast({
+          title: "Silindi",
+          description: "Randevu başarıyla silindi.",
+          variant: "destructive",
+      });
     } catch (error) {
       console.error("Randevu silerken hata oluştu:", error);
+      throw error;
     }
   },
 
-  // ✅ Hatırlatma gönder
-  sendReminder: async (appointment) => {
+  // --- 4. Hatırlatma Gönderme ---
+  sendReminder: async (id, candidateName) => {
     try {
-      const response = await fetch(`/api/appointments/${appointment.id}/reminder`, { method: "POST" });
-      if (!response.ok) throw new Error("Hatırlatma gönderilemedi.");
+      // ✅ Servis çağrısı kullanıldı (sadece ID gönderiliyor)
+      await appointmentService.sendReminder(id);
 
-      console.log(`Hatırlatma gönderildi: ${appointment.candidateName} - ${appointment.date}`);
+      // ✅ UI/UX İyileştirmesi: Başarılı bildirim
+      toast({
+          title: "Hatırlatma Gönderildi",
+          description: `${candidateName} adlı adaya bildirim gönderildi.`,
+      });
+      
     } catch (error) {
       console.error("Hatırlatma gönderirken hata oluştu:", error);
+      toast({
+          title: "Hata",
+          description: "Hatırlatma gönderilemedi.",
+          variant: "destructive",
+      });
     }
   },
 }));

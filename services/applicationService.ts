@@ -13,7 +13,29 @@ interface PaginatedResponse {
         limit: number;
     };
 }
+/**
+ * ✅ YENİ METOT: Belirli bir Mülakat ID'sine ait başvuruları getirir.
+ * Bu, mülakat detay sayfasının (InterviewDetailPage) ihtiyaç duyduğu asıl fonksiyondur.
+ */
+export const getApplicationsByInterviewId = async (
+    interviewId: string
+): Promise<Application[]> => {
+    try {
+        // Bu, aslında getFilteredApplications metodunu 'interviewId' filtresiyle çağırır.
+        // Backend'in bu filtreyi desteklediğini varsayıyoruz.
+        const response = await getFilteredApplications(
+            { interviewId: interviewId } as Partial<ApplicationFilters>, // interviewId filtresi ekleniyor
+            1, // Sayfa 1
+            100 // Yüksek limit, muhtemelen tüm başvurular listelenecek
+        );
 
+        return response.data; 
+
+    } catch (error) {
+        console.error(`Error fetching applications for interview ${interviewId}:`, error);
+        throw error;
+    }
+};
 /**
  * ✅ YENİ METOT: Filtreler, sayfalama ve limit ile başvuruları getirir.
  * Bu, İK panelinin ana veri çekme fonksiyonu olacaktır.

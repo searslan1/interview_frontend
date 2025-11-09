@@ -20,8 +20,7 @@ import { useAuthStore } from "@/store/authStore"; // Kullanıcı kimliği için
 // ✅ Schema güncellendi, interview tipine daha uygun hale getirildi.
 const formSchema = z.object({
   title: z.string().min(2, { message: "Mülakat adı en az 2 karakter olmalıdır." }),
-  description: z.string().min(10, { message: "Mülakat açıklaması en az 10 karakter olmalıdır." }),
-  expirationDate: z.date().refine((date) => date > new Date(), {
+description: z.string().optional().or(z.literal("")).transform(e => (e === "" ? undefined : e)),  expirationDate: z.date().refine((date) => date > new Date(), {
     message: "Son başvuru tarihi geçmiş bir tarih olamaz.",
   }),
   stages: z.object({
@@ -67,7 +66,7 @@ export default function AddInterviewForm() {
    const payload = {
       title: values.title,
       description: values.description,
-      expirationDate: values.expirationDate, // Servis katmanında ISO'ya çevriliyor
+      expirationDate: values.expirationDate.toISOString(), 
       stages: values.stages,
       // keywords: null geliyorsa boş array ata
       questions: values.questions.map((q) => ({
@@ -114,7 +113,11 @@ export default function AddInterviewForm() {
               <FormItem>
                 <FormLabel>Mülakat Açıklaması</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Mülakat açıklamasını girin" {...field} />
+                  <Textarea 
+                      placeholder="Mülakat açıklamasını girin" 
+                      {...field} 
+                      value={field.value || ''} // value null/undefined ise boş string göster
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

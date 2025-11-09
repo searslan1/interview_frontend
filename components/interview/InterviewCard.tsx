@@ -17,6 +17,7 @@ const statusColors: Record<InterviewStatus, string> = {
 
 interface InterviewCardProps {
   interview: Interview;
+  isFeatured?: boolean; // İsteğe bağlı özellik
 }
 
 export function InterviewCard({ interview }: InterviewCardProps) {
