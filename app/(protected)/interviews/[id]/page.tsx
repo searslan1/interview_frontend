@@ -7,10 +7,9 @@ import { InterviewDetails } from "@/components/interview/InterviewDetails";
 import { ApplicationList } from "@/components/applications/ApplicationList";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useApplicationStore } from "@/store/applicationStore";
-// ✅ ApplicationStatus tipini kullanmak için import
 import { ApplicationStatus } from "@/types/application"; 
+import { InterviewPublishControl } from "@/components/interview/InterviewPublishControl"; 
 
-// ✅ Sadeleştirilmiş Liste Tipi Tanımlandı
 interface ApplicationListItem {
     id: string; 
     candidateName: string;
@@ -48,7 +47,11 @@ export default function InterviewDetailPage() {
   }, [id, getInterviewById, getApplicationsByInterviewId]);
 
   // ... (Loading ve Error durumları değişmedi)
-
+ const interview = selectedInterview;
+ 
+ if (!interview) {
+    return <div className="text-gray-500">Mülakat bulunamadı.</div>;
+  }
   if (!selectedInterview) {
     return <div className="text-gray-500">Mülakat bulunamadı.</div>;
   }
@@ -59,20 +62,28 @@ export default function InterviewDetailPage() {
     candidateName: `${app.candidate.name} ${app.candidate.surname}`, 
     email: app.candidate.email, 
     status: app.status,
-    // ✅ Düzeltme: submissionDate yerine createdAt kullanıldı
     submissionDate: new Date(app.createdAt).toLocaleDateString(), 
     aiScore: app.generalAIAnalysis?.overallScore ?? 0, 
     interviewTitle: selectedInterview.title, 
   }));
 
-  return (
+ return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">{selectedInterview.title}</h1>
+      <h1 className="text-3xl font-bold mb-6">{interview.title}</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <InterviewDetails interview={selectedInterview} />
-        {/* ✅ Düzeltme: applicationsWithDetails dizisi artık ApplicationList'in beklediği tipe atanabilir. 
-             Ancak ApplicationList'in prop'larının da ApplicationListItem[] bekleyecek şekilde güncellenmesi gerekir! */}
-        <ApplicationList applications={applicationsWithDetails as any} /> 
+        {/* Sol Panel: Mülakat Detayları */}
+        <InterviewDetails interview={interview} />
+        
+        {/* Sağ Panel: Yayınlama Kontrolü */}
+        <div>
+           {/* ✅ YENİ BİLEŞEN: Yayınlama Durumu ve Butonları */}
+           <InterviewPublishControl interview={interview} />
+
+           {/* Başvurular Listesi (Geniş alan kaplayabilir) */}
+           <h2 className="text-2xl font-bold mt-8 mb-4">Başvurular</h2>
+           <ApplicationList applications={applicationsWithDetails as any} />
+        </div>
+        
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useInterviewStore } from "@/store/interviewStore";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,6 +14,7 @@ import { InterviewPreview } from "./InterviewPreview";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { createInterviewSchema, CreateInterviewDTO } from "@/types/createInterviewDTO";
 import { InterviewStatus } from "@/types/interview";
+import { useInterviewStore } from "@/store/interviewStore";
 
 interface CreateInterviewDialogProps {
   open: boolean;
@@ -24,7 +24,9 @@ interface CreateInterviewDialogProps {
 export function CreateInterviewDialog({ open, onOpenChange }: CreateInterviewDialogProps) {
   const [activeTab, setActiveTab] = useState("general");
   const [loading, setLoading] = useState(false);
-  const { createInterview } = useInterviewStore();
+  const { createInterview } = useInterviewStore(); 
+
+
 
   const form = useForm<CreateInterviewDTO>({
     resolver: zodResolver(createInterviewSchema),
@@ -41,52 +43,79 @@ export function CreateInterviewDialog({ open, onOpenChange }: CreateInterviewDia
     },
   });
 
-  /**
-   * ✅ Mülakat oluşturma işlemini API'ye gönderen fonksiyon
+ /**
+   * ✅ SADECE KAYDETME: Mülakatı her zaman DRAFT olarak kaydeder.
    */
-  const handleCreateInterview = async (status: InterviewStatus) => {
-    setLoading(true);
-    try {
-      const data = form.getValues();
-
-      const formattedData: CreateInterviewDTO = {
-        ...data,
-        status, // ✅ Gelen parametreye göre taslak veya yayın durumu belirleniyor
-        expirationDate: new Date(data.expirationDate).toISOString(),
-        questions: data.questions.map(({ _id, aiMetadata, ...rest }) => ({
-          ...rest,
-          aiMetadata: {
-            complexityLevel: aiMetadata.complexityLevel,
-            requiredSkills: aiMetadata.requiredSkills,
-          },
-        })),
-      };
-
-      await createInterview(formattedData);
-      setTimeout(() => onOpenChange(false), 100); // ✅ Modal kapatılıyor
-    } catch (error) {
-      console.error("Interview creation error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  const onSubmitValidated = async (values: CreateInterviewDTO, status: InterviewStatus) => {
+  const handleSaveDraft = async (values: CreateInterviewDTO) => {
     setLoading(true);
     try {
         const formattedData: CreateInterviewDTO = {
             ...values,
-            status, 
-            // ... diğer formatlama işlemleri
+            status: InterviewStatus.DRAFT, // Her zaman taslak gönder
+            // ... (diğer formatlama)
         };
-        await createInterview(formattedData);
-        setTimeout(() => onOpenChange(false), 100); 
+
+        await createInterview(formattedData); 
+        
+        // Başarılı kayıttan sonra kullanıcıyı mülakat listesine yönlendirmek mantıklı
+        // setTimeout(() => router.push('/interviews'), 100); 
+        onOpenChange(false); 
+
     } catch (error) {
-        console.error("Interview creation error:", error);
-        // Hata mesajını UI'a gösterin (örn: Toast)
+        console.error("Kaydetme sırasında hata:", error);
+        alert("Mülakat taslak olarak kaydedilemedi.");
     } finally {
         setLoading(false);
     }
-};
+  };
+ 
+
+//   /**
+//    * ✅ Mülakat oluşturma işlemini API'ye gönderen fonksiyon
+//    */
+//   const handleCreateInterview = async (status: InterviewStatus) => {
+//     setLoading(true);
+//     try {
+//       const data = form.getValues();
+
+//       const formattedData: CreateInterviewDTO = {
+//         ...data,
+//         status, // ✅ Gelen parametreye göre taslak veya yayın durumu belirleniyor
+//         expirationDate: new Date(data.expirationDate).toISOString(),
+//         questions: data.questions.map(({ _id, aiMetadata, ...rest }) => ({
+//           ...rest,
+//           aiMetadata: {
+//             complexityLevel: aiMetadata.complexityLevel,
+//             requiredSkills: aiMetadata.requiredSkills,
+//           },
+//         })),
+//       };
+
+//       await createInterview(formattedData);
+//       setTimeout(() => onOpenChange(false), 100); // ✅ Modal kapatılıyor
+//     } catch (error) {
+//       console.error("Interview creation error:", error);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+//   const onSubmitValidated = async (values: CreateInterviewDTO, status: InterviewStatus) => {
+//     setLoading(true);
+//     try {
+//         const formattedData: CreateInterviewDTO = {
+//             ...values,
+//             status, 
+//             // ... diğer formatlama işlemleri
+//         };
+//         await createInterview(formattedData);
+//         setTimeout(() => onOpenChange(false), 100); 
+//     } catch (error) {
+//         console.error("Interview creation error:", error);
+//         // Hata mesajını UI'a gösterin (örn: Toast)
+//     } finally {
+//         setLoading(false);
+//     }
+// };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -127,27 +156,16 @@ export function CreateInterviewDialog({ open, onOpenChange }: CreateInterviewDia
           <div className="space-x-2">
             {/* ✅ Taslak olarak kaydetme butonu */}
            <Button
-    variant="outline"
-    disabled={loading}
-    // Sadece Taslak Kaydı: Validasyon gerekmeyen alanları geç
-    onClick={() => onSubmitValidated(form.getValues(), InterviewStatus.DRAFT)} 
->
+            disabled={loading}
+            onClick={form.handleSubmit(
+                handleSaveDraft,
+                (errors) => {
+                    console.error("ZOD Validasyon Hataları:", errors);
+                    alert('Lütfen zorunlu alanları doldurun.');
+                }
+            )}
+          >
               {loading ? <LoadingSpinner /> : "Taslak Olarak Kaydet"}
-            </Button>
-            {/* ✅ Yayınla butonu */}
-            <Button
-              disabled={loading}
-onClick={form.handleSubmit((values) => onSubmitValidated(values, InterviewStatus.PUBLISHED),
-  (errors) => {
-                      // Hata varsa konsola yazdır ve kullanıcıya bildir
-                      console.error("ZOD VALIDATION FAILED:", errors);
-                      const firstError = Object.values(errors)[0]?.message || 'Lütfen tüm zorunlu alanları doldurun.';
-                      alert(`Yayınlama hatası: ${firstError}`); 
-                      // NOT: Console'daki 'ZOD VALIDATION FAILED' çıktısı, size hangi alanın boş kaldığını gösterecektir.
-                  }
-              )}   
-         >
-              {loading ? <LoadingSpinner /> : "Yayınla"}
             </Button>
           </div>
         </div>

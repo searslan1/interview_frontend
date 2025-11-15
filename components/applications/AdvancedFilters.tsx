@@ -12,11 +12,12 @@ import { ChevronDown } from "lucide-react"
 // ✅ Düzeltme denemesi: Next.js takma adlarını kullanıyoruz.
 import { DatePickerWithRange } from "@/components/ui/date-range-picker" 
 import { ApplicationFilters } from "@/types/application"
-import useApplicationStore from "@/store/applicationStore" 
+import {useApplicationStore} from "@/store/applicationStore" 
 
 interface AdvancedFiltersProps {
   interviews?: { id: string; title: string }[]
   personalityTypes?: string[]
+  onFilterChange?: (filters: Partial<ApplicationFilters>) => void
 }
 
 export function AdvancedFilters({ interviews = [], personalityTypes = [] }: AdvancedFiltersProps) {

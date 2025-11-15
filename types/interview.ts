@@ -118,11 +118,11 @@ export interface InterviewStoreState {
 export interface InterviewStoreActions {
   fetchInterviews: () => Promise<void>;
   getInterviewById: (id: string) => Promise<void>;
-  createInterview: (data: CreateInterviewDTO) => Promise<void>;
+  createInterview: (data: CreateInterviewDTO) => Promise<Interview>;
   // 🚨 Güncel tip: Partial<UpdateInterviewDTO> veya UpdateInterviewDTO olabilir
   updateInterview: (id: string, data: Partial<UpdateInterviewDTO>) => Promise<void>;
   // 🚨 Yeni eklenen yayınlama metodu
-  publishInterview: (id: string) => Promise<void>;
+  publishInterview: (id: string) => Promise<Interview>;
   deleteInterview: (id: string) => Promise<void>;
 }
 

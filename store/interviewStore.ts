@@ -52,22 +52,26 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
 /**
    * Yeni bir mülakat oluşturma
    */
-createInterview: async (data: CreateInterviewDTO): Promise<void> => {
-  set({ loading: true, error: null });
-  try {
-    const newInterview = await interviewService.createInterview(data);
-    
-    // **State Güncelleme**: Yeni mülakatı listenin başına ekleyelim (en yeni üstte olur)
-    set((state) => ({
-      interviews: [newInterview, ...state.interviews], 
-      loading: false,
-    }));
+ createInterview: async (data: CreateInterviewDTO): Promise<Interview> => { 
+    set({ loading: true, error: null });
+    try {
+      const newInterview = await interviewService.createInterview(data);
+      
+      // **State Güncelleme**: Yeni mülakatı listenin başına ekleyelim
+      set((state) => ({
+        interviews: [newInterview, ...state.interviews], 
+        loading: false,
+      }));
+      
+      // ✅ YENİ: Başarıyla kaydedilen mülakatı (ID'si ile birlikte) geri döndür.
+      return newInterview; 
 
-  } catch (error: any) {
-    // API'dan gelen error.response?.data?.message yapısını kullan
-    set({ error: error.response?.data?.message || "Mülakat oluşturulurken hata oluştu", loading: false });
-  }
-},
+    } catch (error: any) {
+      set({ error: error.response?.data?.message || "Mülakat oluşturulurken hata oluştu", loading: false });
+      // Hata durumunda Promise'i reddetmeye devam et
+      throw error;
+    }
+  },
 
 
 
@@ -96,12 +100,12 @@ createInterview: async (data: CreateInterviewDTO): Promise<void> => {
   /**
    * Mülakatı yayınlama (Publish)
    */
-  publishInterview: async (id: string) => {
+publishInterview: async (id: string): Promise<Interview> => {
     set({ loading: true, error: null });
     try {
       const updatedInterview = await interviewService.publishInterview(id);
 
-      // **State Güncelleme**: Mülakatın durumunu PUBLISHED olarak güncelle ve selectedInterview'ı da güncelle
+      // **State Güncelleme**: 
       set((state) => ({
         interviews: state.interviews.map((i) =>
             i._id === id ? { ...i, status: updatedInterview.status } : i
@@ -109,9 +113,13 @@ createInterview: async (data: CreateInterviewDTO): Promise<void> => {
         selectedInterview: state.selectedInterview?._id === id ? updatedInterview : state.selectedInterview,
         loading: false,
       }));
+      
+      // ✅ Başarıyla güncellenen mülakatı döndür
+      return updatedInterview; 
 
     } catch (error: any) {
       set({ error: error.response?.data?.message || "Mülakat yayınlanırken hata oluştu", loading: false });
+      throw error;
     }
   },
 
