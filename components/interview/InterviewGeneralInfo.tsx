@@ -1,6 +1,6 @@
 "use client";
 
-import type { UseFormReturn } from "react-hook-form";
+import { Controller, UseFormReturn } from "react-hook-form"; // Controller import edildi
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useState } from "react";
 import Image from "next/image";
+
 
 interface InterviewGeneralInfoProps {
   form: UseFormReturn<any>;
@@ -49,14 +50,23 @@ export function InterviewGeneralInfo({ form }: InterviewGeneralInfoProps) {
 
         {/* Tarihler (Başlangıç / Bitiş) */}
         <div className="flex space-x-4">
-          <div>
-            <Label htmlFor="expirationDate">Bitiş Tarihi</Label>
-            <DatePicker
-              id="expirationDate"
-              date={new Date(form.getValues("expirationDate"))}
-              onSelect={(date) => form.setValue("expirationDate", date?.toISOString() ?? "")}
-            />
-          </div>
+          <Controller
+            name="expirationDate" // Form state'indeki alan adı
+            control={form.control}
+            render={({ field }) => (
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="expirationDate">Bitiş Tarihi</Label>
+                <DatePicker
+                  id="expirationDate"
+                  // RHF'den gelen ISO string'i Date objesine çeviriyoruz.
+                  date={field.value ? new Date(field.value) : undefined}
+                  
+                  // DatePicker'dan gelen Date objesini, RHF'ye yazmadan önce ISO String'e çeviriyoruz.
+                  onSelect={(date) => field.onChange(date?.toISOString() ?? "")}
+                />
+              </div>
+            )}
+          />
         </div>
 
         {/* Kişilik Testi */}

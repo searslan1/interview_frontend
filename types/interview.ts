@@ -124,5 +124,6 @@ export interface InterviewStoreActions {
   // 🚨 Yeni eklenen yayınlama metodu
   publishInterview: (id: string) => Promise<Interview>;
   deleteInterview: (id: string) => Promise<void>;
+  updateInterviewLink: (id: string, data: { expirationDate: string }) => Promise<string>;
 }
 

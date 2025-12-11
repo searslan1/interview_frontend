@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react"; // useEffect eklendi
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,28 +13,37 @@ import { PublishSettings } from "./PublishSettings";
 import { InterviewPreview } from "./InterviewPreview";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { createInterviewSchema, CreateInterviewDTO } from "@/types/createInterviewDTO";
-import { InterviewStatus } from "@/types/interview";
+import { Interview, InterviewStatus } from "@/types/interview"; // Interview tipi import edildi
 import { useInterviewStore } from "@/store/interviewStore";
+import { toast } from "@/components/ui/use-toast"; // Toast eklendi
 
 interface CreateInterviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  // 📌 YENİ PROP: Düzenleme modunda mülakat verisi
+  interviewToEdit: Interview | null; 
 }
 
-export function CreateInterviewDialog({ open, onOpenChange }: CreateInterviewDialogProps) {
+export function CreateInterviewDialog({ open, onOpenChange, interviewToEdit }: CreateInterviewDialogProps) {
   const [activeTab, setActiveTab] = useState("general");
   const [loading, setLoading] = useState(false);
-  const { createInterview } = useInterviewStore(); 
+  const { createInterview, updateInterview } = useInterviewStore(); // updateInterview eklendi
 
-
-
+  // Düzenleme modunda olup olmadığımızı belirler
+  const isEditing = !!interviewToEdit; 
+  
+  // ----------------------------------------------------
+  // 📌 Varsayılan Değerler ve Form Yönetimi
+  // ----------------------------------------------------
   const form = useForm<CreateInterviewDTO>({
     resolver: zodResolver(createInterviewSchema),
+    // Formun verileri, interviewToEdit varsa onunla, yoksa varsayılanlarla başlar
     defaultValues: {
       title: "",
-      expirationDate: new Date().toISOString(), // ✅ Backend için uygun ISO format
+      // API'den gelen tarih ISO string olacağı için:
+      expirationDate: new Date().toISOString(), 
       personalityTestId: undefined,
-      status: InterviewStatus.DRAFT, // Varsayılan olarak "Taslak"
+      status: InterviewStatus.DRAFT, 
       stages: {
         personalityTest: false,
         questionnaire: true,
@@ -43,98 +52,96 @@ export function CreateInterviewDialog({ open, onOpenChange }: CreateInterviewDia
     },
   });
 
- /**
-   * ✅ SADECE KAYDETME: Mülakatı her zaman DRAFT olarak kaydeder.
+  /**
+   * 📌 EFFECT: Düzenleme verisi geldiğinde formu resetle
+   */
+  useEffect(() => {
+    if (open && interviewToEdit) {
+      // API'den gelen verileri doğrudan forma yüklüyoruz.
+      // Not: Interview tipiniz ile CreateInterviewDTO tipiniz birebir örtüşmeli.
+      form.reset({
+        ...interviewToEdit,
+        // Tarih alanını formatı koruyarak yüklüyoruz.
+        expirationDate: interviewToEdit.expirationDate ? new Date(interviewToEdit.expirationDate).toISOString() : new Date().toISOString(),
+        // Sorular ve diğer iç içe alanlar burada doğru şekilde eşleştirilmelidir.
+      } as Partial<CreateInterviewDTO>);
+      setActiveTab("general"); // Her zaman Genel Bilgiler sekmesinde başlat
+    } else if (open && !interviewToEdit) {
+      // Yeni oluşturma modunda modal açıldığında formu sıfırla
+      form.reset({
+        title: "",
+        expirationDate: new Date().toISOString(),
+        personalityTestId: undefined,
+        status: InterviewStatus.DRAFT,
+        stages: { personalityTest: false, questionnaire: true },
+        questions: [],
+      });
+      setActiveTab("general");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, interviewToEdit]); // open veya interviewToEdit değiştiğinde tetiklenir
+
+
+  /**
+   * ✅ KAYDETME/GÜNCELLEME: Mülakatı kaydeder (DRAFT olarak oluşturur veya günceller).
    */
   const handleSaveDraft = async (values: CreateInterviewDTO) => {
     setLoading(true);
     try {
         const formattedData: CreateInterviewDTO = {
             ...values,
-            status: InterviewStatus.DRAFT, // Her zaman taslak gönder
-            // ... (diğer formatlama)
+            // Düzenleme modunda bile, kart üzerindeki butondan kaydetme her zaman taslak durumunda olmalıdır.
+            status: InterviewStatus.DRAFT, 
+            // API'ye gönderilecek veriye sadece gerekli alanları dahil etmelisiniz.
         };
 
-        await createInterview(formattedData); 
+        let result;
+        if (isEditing && interviewToEdit?._id) {
+            // DÜZENLEME (PUT rotası)
+            result = await updateInterview(interviewToEdit._id, formattedData);
+            toast({ title: "Başarılı", description: "Mülakat taslağı güncellendi." });
+        } else {
+            // YENİ OLUŞTURMA (POST rotası)
+            result = await createInterview(formattedData); 
+            toast({ title: "Başarılı", description: "Yeni mülakat taslak olarak oluşturuldu." });
+        }
         
-        // Başarılı kayıttan sonra kullanıcıyı mülakat listesine yönlendirmek mantıklı
-        // setTimeout(() => router.push('/interviews'), 100); 
         onOpenChange(false); 
+        // Başarılıysa, listeyi yenileme aksiyonunu tetikleyin (useInterviewStore içinde olmalı).
 
     } catch (error) {
-        console.error("Kaydetme sırasında hata:", error);
-        alert("Mülakat taslak olarak kaydedilemedi.");
+        console.error(isEditing ? "Güncelleme sırasında hata:" : "Oluşturma sırasında hata:", error);
+        toast({ title: "Hata", description: isEditing ? "Güncelleme başarısız oldu." : "Oluşturma başarısız oldu.", variant: "destructive" });
     } finally {
         setLoading(false);
     }
   };
  
-
-//   /**
-//    * ✅ Mülakat oluşturma işlemini API'ye gönderen fonksiyon
-//    */
-//   const handleCreateInterview = async (status: InterviewStatus) => {
-//     setLoading(true);
-//     try {
-//       const data = form.getValues();
-
-//       const formattedData: CreateInterviewDTO = {
-//         ...data,
-//         status, // ✅ Gelen parametreye göre taslak veya yayın durumu belirleniyor
-//         expirationDate: new Date(data.expirationDate).toISOString(),
-//         questions: data.questions.map(({ _id, aiMetadata, ...rest }) => ({
-//           ...rest,
-//           aiMetadata: {
-//             complexityLevel: aiMetadata.complexityLevel,
-//             requiredSkills: aiMetadata.requiredSkills,
-//           },
-//         })),
-//       };
-
-//       await createInterview(formattedData);
-//       setTimeout(() => onOpenChange(false), 100); // ✅ Modal kapatılıyor
-//     } catch (error) {
-//       console.error("Interview creation error:", error);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-//   const onSubmitValidated = async (values: CreateInterviewDTO, status: InterviewStatus) => {
-//     setLoading(true);
-//     try {
-//         const formattedData: CreateInterviewDTO = {
-//             ...values,
-//             status, 
-//             // ... diğer formatlama işlemleri
-//         };
-//         await createInterview(formattedData);
-//         setTimeout(() => onOpenChange(false), 100); 
-//     } catch (error) {
-//         console.error("Interview creation error:", error);
-//         // Hata mesajını UI'a gösterin (örn: Toast)
-//     } finally {
-//         setLoading(false);
-//     }
-// };
+  // ----------------------------------------------------
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Yeni Mülakat Oluştur</DialogTitle>
+          {/* Başlık, moda göre değişir */}
+          <DialogTitle className="text-2xl font-bold">
+            {isEditing ? "Mülakatı Düzenle" : "Yeni Mülakat Oluştur"}
+          </DialogTitle>
         </DialogHeader>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
+          {/* Sekmeler */}
           <TabsList className="mb-4">
             <TabsTrigger value="general">Genel Bilgiler</TabsTrigger>
             <TabsTrigger value="questions">Sorular</TabsTrigger>
             <TabsTrigger value="evaluation">Değerlendirme</TabsTrigger>
-            <TabsTrigger value="publish">Yayınlama</TabsTrigger>
             <TabsTrigger value="preview">Önizleme</TabsTrigger>
           </TabsList>
+          {/* İçerik Alanı */}
           <div className="flex-grow overflow-auto px-4 pb-4">
             <TabsContent value="general">
               <InterviewGeneralInfo form={form} />
             </TabsContent>
+            {/* ... Diğer sekmeler (questions, evaluation, publish, preview) */}
             <TabsContent value="questions">
               <AIQuestionCreation form={form} />
             </TabsContent>
@@ -149,23 +156,25 @@ export function CreateInterviewDialog({ open, onOpenChange }: CreateInterviewDia
             </TabsContent>
           </div>
         </Tabs>
+        {/* Butonlar */}
         <div className="flex justify-between space-x-2 mt-4 pt-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             İptal
           </Button>
           <div className="space-x-2">
-            {/* ✅ Taslak olarak kaydetme butonu */}
+            
            <Button
             disabled={loading}
             onClick={form.handleSubmit(
                 handleSaveDraft,
                 (errors) => {
                     console.error("ZOD Validasyon Hataları:", errors);
-                    alert('Lütfen zorunlu alanları doldurun.');
+                    toast({ title: "Hata", description: 'Lütfen zorunlu alanları doldurun.', variant: "destructive" });
                 }
             )}
           >
-              {loading ? <LoadingSpinner /> : "Taslak Olarak Kaydet"}
+              {/* Buton metni moda göre değişir */}
+              {loading ? <LoadingSpinner /> : (isEditing ? "Değişiklikleri Kaydet" : "Taslak Olarak Kaydet")}
             </Button>
           </div>
         </div>

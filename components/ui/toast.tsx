@@ -32,6 +32,11 @@ const toastVariants = cva(
         default: "border bg-background text-foreground",
         destructive:
           "destructive group border-destructive bg-destructive text-destructive-foreground",
+        // 📌 YENİ: Warning varyantı eklendi
+        warning:
+          "border-yellow-500 bg-yellow-50 text-yellow-800",
+        // İsteğe bağlı olarak Success da eklenebilir
+        // success: "border-green-500 bg-green-50 text-green-800",
       },
     },
     defaultVariants: {

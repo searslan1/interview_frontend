@@ -141,4 +141,49 @@ publishInterview: async (id: string): Promise<Interview> => {
       set({ error: error.response?.data?.message || "Mülakat silinirken hata oluştu", loading: false });
     }
   },
+  /**
+   * Mülakat linkini ve bitiş süresini güncelleme (Süre Uzatma)
+   * PATCH /:id/link rotasını kullanır.
+   * @returns Yeni oluşturulan linki döndürür.
+   */
+  updateInterviewLink: async (id: string, updateData: { expirationDate: string }): Promise<string> => {
+    set({ loading: true, error: null });
+    try {
+      // Servis çağrısı, artık { link: string, expirationDate: string } objesi döndürüyor
+      const updatedLinkInfo = await interviewService.generateInterviewLink(id, updateData.expirationDate); 
+      
+      const newLink = updatedLinkInfo.link;
+
+      // **State Güncelleme**: Güncellenen link ve süre bilgisini listede yansıt
+      set((state) => ({
+        interviews: state.interviews.map((i) =>
+            i._id === id
+                ? { 
+                    ...i, 
+                    interviewLink: { 
+                        link: newLink, 
+                        expirationDate: updatedLinkInfo.expirationDate 
+                    },
+                    status: InterviewStatus.PUBLISHED, // Süre uzatıldığı için PUBLISHED olarak kalmalı
+                } 
+                : i
+        ),
+        loading: false,
+      }));
+      
+      // ✅ Yeni oluşturulan linki (string) döndür (Dialog'a bildirmek için)
+      return newLink;
+
+    } catch (error: any) {
+      // 📌 DÜZELTME: Hata mesajını yakalama ve kullanma
+      const caughtErrorMessage = error.response?.data?.message || "Mülakat linki güncellenirken hata oluştu";
+      
+      set({ error: caughtErrorMessage, loading: false });
+      
+      // Hata durumunda Promise'i reddederek UI'da yakalanmasını sağla
+      throw new Error(caughtErrorMessage); // 'errorMessage' yerine 'caughtErrorMessage' kullanıldı
+    }
+  },
+
 }));
+

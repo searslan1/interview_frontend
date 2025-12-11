@@ -96,18 +96,29 @@ export const interviewService = {
   /**
    * Mülakat Linkini Güncelleme (Endpoint'i koruyoruz)
    */
-  async generateInterviewLink(id: string, expirationDate?: string | number): Promise<Interview> {
+ /**
+   * Mülakat Linkini Güncelleme (Süre Uzatma ve Link Yenileme)
+   * PATCH /:id/link rotasını kullanır.
+   * @returns Güncellenmiş Link objesini ({ link: string, expirationDate: string }) döndürür.
+   */
+  async generateInterviewLink(
+    id: string, 
+    expirationDate?: string | number
+  ): Promise<{ link: string; expirationDate: string }> { // 📌 Dönüş tipi güncellendi!
+    
     const payload = { 
       expirationDate: expirationDate ? new Date(expirationDate).toISOString() : undefined
     };
     
-    // 🚨 Endpoint Düzeltmesi: '/interview/' (tekil) yerine '/interviews/' (çoğul) kullanıldı.
+    // API'den gelen yanıtın (response.data.data) sadece InterviewLink objesi olduğu varsayılır.
+    // Eğer backend tüm Interview objesini döndürüyorsa, burada ayrıştırma yapmalıyız.
     const response = await api.patch(`/interviews/${id}/link`, payload);
+
+    // 🚨 Varsayım: Backend sadece link objesini ({link, expirationDate}) dönüyor.
+    // Eğer tüm Interview objesi dönüyorsa: return response.data.data.interviewLink;
+    
+    // Güvenli olması için, Backend'in sadece link objesi döndürdüğü varsayımıyla devam edelim:
     return response.data.data; 
   },
-
-  // 🚨 KALDIRILAN METOTLAR:
-  // updateInterviewStatus: Backend'de kaldırıldı, yerine publishInterview eklendi.
-  // updateInterviewQuestions: Mantığı updateInterview içine alındı.
-  // updatePersonalityTest: Mantığı updateInterview içine alındı.
 };
+
