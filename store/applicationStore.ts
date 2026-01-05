@@ -1,134 +1,288 @@
 // src/store/applicationStore.ts
 
 import { create } from 'zustand';
-import { Application, ApplicationFilters } from '@/types/application'; // ✅ ApplicationFilters import edildi
 import { 
+  Application, 
+  ApplicationFilterState,
+  ApplicationSortState,
+  ApplicationStatus
+} from '@/types/application';
+import { 
+  getApplications,
   getApplicationsByInterviewId,
-  getFilteredApplications, // ✅ Yeni import
-  updateApplicationStatus // ✅ Yeni import
+  getApplicationById,
+  updateApplicationStatus 
 } from '@/services/applicationService';
 
-// ✅ YENİ TİP: Filtreler ve Sayfalama Bilgileri ile Genişletildi
- interface ApplicationStore {
-  applications: Application[];
+// ========================================
+// STORE STATE INTERFACE
+// ========================================
+
+interface ApplicationStore {
+  // Data
+  items: Application[];
   application: Application | null;
+  
+  // Pagination
+  page: number;
+  limit: number;
+  total: number;
+  hasMore: boolean;
+  
+  // UI State
   loading: boolean;
   error: string | null;
-
-  // ✅ YENİ STATE: Filtreler
-  filters: Partial<ApplicationFilters>; 
-  // ✅ YENİ STATE: Sayfalama
+  
+  // Filters & Sort
+  filters: ApplicationFilterState;
+  sort: ApplicationSortState;
+  
+  // Actions
+  fetchApplications: (options?: { reset?: boolean }) => Promise<void>;
+  fetchNextPage: () => Promise<void>;
+  setFilters: (newFilters: Partial<ApplicationFilterState>) => void;
+  setSort: (newSort: Partial<ApplicationSortState>) => void;
+  resetFilters: () => void;
+  
+  // Single Application Actions
+  fetchApplication: (id: string) => Promise<void>;
+  updateStatus: (id: string, newStatus: 'pending' | 'rejected' | 'accepted') => Promise<void>;
+  clearApplication: () => void;
+  
+  // Interview-specific (Mülakat detay sayfası için)
+  getApplicationsByInterviewId: (interviewId: string) => Promise<void>;
+  
+  // ========================================
+  // LEGACY COMPATIBILITY (Geriye Dönük Uyumluluk)
+  // ========================================
+  
+  /** @deprecated Use 'items' instead */
+  applications: Application[];
+  
+  /** @deprecated Use page, limit, total, hasMore instead */
   pagination: {
     total: number;
     page: number;
     limit: number;
   };
-
-  // ✅ YENİ AKSİYONLAR
-  setFilters: (newFilters: Partial<ApplicationFilters>) => void;
-  fetchApplications: (page?: number) => Promise<void>; // Artık page alabilir
-  fetchApplication: (id: string) => Promise<void>;
-  updateStatus: (id: string, newStatus: 'pending' | 'rejected' | 'accepted') => Promise<void>;
-  getApplicationsByInterviewId: (interviewId: string) => Promise<void>;
-  clearApplication: () => void;
 }
 
+// ========================================
+// DEFAULT VALUES
+// ========================================
+
+const DEFAULT_FILTERS: ApplicationFilterState = {
+  interviewId: undefined,
+  status: 'all',
+  analysisStatus: 'all',
+  query: '',
+  aiScoreMin: 0,
+};
+
+const DEFAULT_SORT: ApplicationSortState = {
+  sortBy: 'createdAt',
+  sortOrder: 'desc',
+};
+
+const DEFAULT_LIMIT = 10;
+
+// ========================================
+// STORE IMPLEMENTATION
+// ========================================
+
 export const useApplicationStore = create<ApplicationStore>((set, get) => ({
-  applications: [],
+  // Initial State
+  items: [],
   application: null,
+  page: 1,
+  limit: DEFAULT_LIMIT,
+  total: 0,
+  hasMore: false,
   loading: false,
   error: null,
-  filters: { aiScoreMin: 0, completionStatus: 'all', applicationStatus: 'all', searchTerm: '' }, // ✅ Başlangıç Filtreleri
-  pagination: { total: 0, page: 1, limit: 10 }, // ✅ Sayfalama Başlangıç Değerleri
-
-  // ✅ YENİ AKSİYON: Filtreleri güncelle
-  setFilters: (newFilters) => {
-    set((state) => ({ 
-      filters: { ...state.filters, ...newFilters }, 
-      pagination: { ...state.pagination, page: 1 } // Filtre değişince sayfayı 1'e sıfırla
-    }));
-    get().fetchApplications(1); // Filtre değişince veriyi yenile
+  filters: { ...DEFAULT_FILTERS },
+  sort: { ...DEFAULT_SORT },
+  
+  // Legacy compatibility getters
+  get applications() { return get().items; },
+  get pagination() { 
+    const state = get();
+    return { total: state.total, page: state.page, limit: state.limit }; 
   },
 
-  // Tüm başvuruları getir (Artık filtreli)
-  fetchApplications: async (page = 1) => {
+  /**
+   * Ana fetch fonksiyonu
+   * @param options.reset - true ise page=1 ve items reset edilir
+   */
+  fetchApplications: async (options = {}) => {
+    const { reset = false } = options;
+    const state = get();
+    
+    // Zaten yükleniyorsa çık
+    if (state.loading) return;
+    
     set({ loading: true, error: null });
     
-    // Geçerli filtreleri ve sayfalamayı al
-    const currentFilters = get().filters;
-    const currentLimit = get().pagination.limit;
-
+    const targetPage = reset ? 1 : state.page;
+    
     try {
-      // ✅ YENİ METOT KULLANIMI: getFilteredApplications
-      const response = await getFilteredApplications(currentFilters, page, currentLimit);
-
-      set({ 
-        applications: response.data,
-        pagination: { 
-            total: response.meta.total, 
-            page: response.meta.page, 
-            limit: response.meta.limit 
-        },
+      const response = await getApplications({
+        page: targetPage,
+        limit: state.limit,
+        interviewId: state.filters.interviewId,
+        status: state.filters.status,
+        analysisStatus: state.filters.analysisStatus,
+        query: state.filters.query,
+        aiScoreMin: state.filters.aiScoreMin,
+        sortBy: state.sort.sortBy,
+        sortOrder: state.sort.sortOrder,
+      });
+      
+      const newItems = reset 
+        ? response.data 
+        : [...state.items, ...response.data];
+      
+      const totalPages = response.meta.totalPages || Math.ceil(response.meta.total / state.limit);
+      const hasMore = response.meta.page < totalPages;
+      
+      set({
+        items: newItems,
+        page: response.meta.page,
+        total: response.meta.total,
+        hasMore,
+        loading: false,
       });
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Başvurular getirilirken hata oluştu.',
+        loading: false,
       });
-    } finally {
-      set({ loading: false });
     }
   },
 
-  // Tek başvuruyu ID ile getir
-  fetchApplication: async (id: string) => { /* ... mevcut kod ... */ },
+  /**
+   * Sonraki sayfayı yükle (infinite scroll için)
+   * ÖNEMLI: Sadece hasMore && !loading iken çağrılmalı
+   */
+  fetchNextPage: async () => {
+    const state = get();
+    
+    // Guard: hasMore yoksa veya yükleniyorsa çık
+    if (!state.hasMore || state.loading) {
+      return;
+    }
+    
+    // Sayfa numarasını artır ve fetch et
+    set({ page: state.page + 1 });
+    await get().fetchApplications();
+  },
 
-  // ✅ YENİ AKSİYON: Başvuru durumunu güncelle
+  /**
+   * Filtreleri güncelle ve listeyi sıfırla
+   */
+  setFilters: (newFilters) => {
+    set((state) => ({
+      filters: { ...state.filters, ...newFilters },
+      page: 1, // Filtre değişince sayfa 1'e dön
+    }));
+    get().fetchApplications({ reset: true });
+  },
+
+  /**
+   * Sıralamayı güncelle ve listeyi sıfırla
+   */
+  setSort: (newSort) => {
+    set((state) => ({
+      sort: { ...state.sort, ...newSort },
+      page: 1, // Sort değişince sayfa 1'e dön
+    }));
+    get().fetchApplications({ reset: true });
+  },
+
+  /**
+   * Filtreleri varsayılana sıfırla
+   */
+  resetFilters: () => {
+    set({
+      filters: { ...DEFAULT_FILTERS },
+      sort: { ...DEFAULT_SORT },
+      page: 1,
+    });
+    get().fetchApplications({ reset: true });
+  },
+
+  /**
+   * Tek başvuruyu ID ile getir (detay sayfası için)
+   */
+  fetchApplication: async (id: string) => {
+    set({ loading: true, error: null });
+    try {
+      const app = await getApplicationById(id); // ✅ Doğru servis çağrısı
+      set({ application: app, loading: false });
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Başvuru getirilirken hata oluştu.',
+        loading: false,
+      });
+    }
+  },
+
+  /**
+   * Başvuru durumunu güncelle (Kabul/Red/Beklemede)
+   */
   updateStatus: async (id, newStatus) => {
     set({ loading: true, error: null });
     try {
       const updatedApp = await updateApplicationStatus(id, newStatus);
       
-      // Store'daki application ve applications listesini güncelle
       set((state) => ({
         // Tekli görünüm güncellenir
         application: state.application?._id === id ? updatedApp : state.application,
         // Liste görünümü güncellenir
-        applications: state.applications.map(app => 
+        items: state.items.map(app => 
           app._id === id ? updatedApp : app
         ),
+        loading: false,
       }));
-
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Durum güncellenirken hata oluştu.',
+        loading: false,
       });
-    } finally {
-      set({ loading: false });
     }
   },
 
-  // Başvuru state temizle
+  /**
+   * Başvuru state'ini temizle
+   */
   clearApplication: () => {
     set({ application: null, error: null });
   },
-  // ✅ YENİ AKSİYON: Mülakat ID'sine göre başvuruları getirir (Mülakat Detay Sayfası için)
+
+  /**
+   * Mülakat ID'sine göre başvuruları getir (Mülakat Detay Sayfası için)
+   * NOT: Bu metot ana pagination state'ini etkilemez
+   */
   getApplicationsByInterviewId: async (interviewId: string) => {
     set({ loading: true, error: null });
     try {
-        const applications = await getApplicationsByInterviewId(interviewId);
-        
-        // Bu metot, genellikle sadece ilgili başvuruları getirir, genel paginasyonu etkilemez.
-        set({ 
-            applications: applications,
-            // NOT: Burada pagination verisini güncellemiyoruz, çünkü bu genel liste değil.
-        });
+      const applications = await getApplicationsByInterviewId(interviewId);
+      
+      set({ 
+        items: applications,
+        total: applications.length,
+        hasMore: false, // Tüm başvurular geldi
+        page: 1,
+        loading: false,
+      });
     } catch (error: any) {
-        set({
-            error: error.response?.data?.message || 'Mülakat başvuruları getirilirken hata oluştu.',
-        });
-    } finally {
-        set({ loading: false });
+      set({
+        error: error.response?.data?.message || 'Mülakat başvuruları getirilirken hata oluştu.',
+        loading: false,
+      });
     }
   },
 }));
 
+// Default export for backward compatibility
+export default useApplicationStore;

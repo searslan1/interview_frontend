@@ -2,29 +2,34 @@
 
 import { useState, useRef, useEffect, useMemo } from "react"
 import { motion } from "framer-motion"
+
+// Components
 import { VideoPlayer } from "@/components/candidate/video-player"
 import { AIGeneralAnalysis } from "@/components/candidate/ai-general-analysis"
 import { AIDetailedReports } from "@/components/candidate/ai-detailed-reports"
 import { CandidateManagement } from "@/components/candidate/candidate-management"
-import { VideoTranscript } from "@/components/candidate/video-transcript"; // Modüler bileşen import edildi
-import { Application, ApplicationResponse } from "@/types/application" 
-import { Card, CardContent } from "@/components/ui/card" 
+import { VideoTranscript } from "@/components/candidate/video-transcript"
+
+// UI & Types
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs" 
+import { Application, ApplicationResponse } from "@/types/application" 
 
 interface CandidateDetailReviewProps {
-  application: Application // Tip Application
+  application: Application
 }
 
 export function CandidateDetailReview({ application }: CandidateDetailReviewProps) {
+  // Video State
   const [currentTime, setCurrentTime] = useState(0)
   const [isFullScreen, setIsFullScreen] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   
+  // Tab State (Default: İlk soru)
   const [activeQuestionId, setActiveQuestionId] = useState<string>(
-    application.responses[0]?.questionId || ''
+    application.responses?.[0]?.questionId || ''
   );
 
-  // 🚀 HATA ÇÖZÜMÜ 1: Eksik fonksiyonlar buraya eklendi
+  // Video Handler'ları
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       setCurrentTime(videoRef.current.currentTime)
@@ -40,42 +45,47 @@ export function CandidateDetailReview({ application }: CandidateDetailReviewProp
       setIsFullScreen(false)
     }
   }
-  // ----------------------------------------------------
 
+  // Active Question Değişimi & Fullscreen Listener
   useEffect(() => {
-    if (application.responses.length > 0 && !activeQuestionId) {
+    // Eğer activeQuestionId boşsa ve yanıtlar varsa, ilkini seç
+    if (!activeQuestionId && application.responses?.length > 0) {
         setActiveQuestionId(application.responses[0].questionId);
     }
     
-    // Fullscreen değişim dinleyicisi de burada kalır
     const handleFullScreenChange = () => {
       setIsFullScreen(!!document.fullscreenElement)
     }
     document.addEventListener("fullscreenchange", handleFullScreenChange)
+    
     return () => {
       document.removeEventListener("fullscreenchange", handleFullScreenChange)
     }
   }, [application.responses, activeQuestionId])
   
+  // Aktif sorunun verilerini bul
   const activeResponse = useMemo<ApplicationResponse | undefined>(() => {
-    return application.responses.find(r => r.questionId === activeQuestionId);
+    return application.responses?.find(r => r.questionId === activeQuestionId);
   }, [application.responses, activeQuestionId]);
 
   const activeVideoUrl = activeResponse?.videoUrl || "";
   const activeTranscript = activeResponse?.textAnswer || "";
-  
+
+  // Yanıt yoksa (Aday henüz başlamamışsa veya hata varsa)
+  if (!application.responses || application.responses.length === 0) {
+      return <div className="p-4 text-center text-muted-foreground">Henüz kaydedilmiş bir yanıt yok.</div>;
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="space-y-8"
       >
-        {/* Soru Seçimi (Tabs) */}
-        <Tabs value={activeQuestionId} onValueChange={setActiveQuestionId}>
-          <TabsList className="w-full">
+        {/* 1. TAB MENÜSÜ (Sorular) */}
+        <Tabs value={activeQuestionId} onValueChange={setActiveQuestionId} className="w-full">
+          <TabsList className="w-full justify-start overflow-x-auto">
             {application.responses.map((response, index) => (
               <TabsTrigger key={response.questionId} value={response.questionId}>
                 Soru {index + 1}
@@ -84,40 +94,45 @@ export function CandidateDetailReview({ application }: CandidateDetailReviewProp
           </TabsList>
           
           {application.responses.map((response) => (
-            <TabsContent key={response.questionId} value={response.questionId} className="mt-4">
-              <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* 1. Video Oynatıcı ve Transkripsiyon */}
-                <div>
-                  <VideoPlayer
-                    videoUrl={activeVideoUrl}
-                    ref={videoRef}
-                    onTimeUpdate={handleTimeUpdate} // ✅ Kapsam hatası çözüldü
-                    onFullScreenToggle={handleFullScreenToggle} // ✅ Kapsam hatası çözüldü
-                  />
-                  <VideoTranscript transcript={activeTranscript} />
+            <TabsContent key={response.questionId} value={response.questionId} className="mt-6 space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                {/* SOL: Video ve Transkript */}
+                <div className="space-y-6">
+                  <div className="rounded-xl overflow-hidden shadow-sm border bg-black/5">
+                     <VideoPlayer
+                        videoUrl={response.videoUrl || ""}
+                        ref={videoRef}
+                        onTimeUpdate={handleTimeUpdate}
+                        onFullScreenToggle={handleFullScreenToggle}
+                      />
+                  </div>
+                  <VideoTranscript transcript={response.textAnswer || "Transkript bulunamadı."} />
                 </div>
 
-                {/* 2. Detaylı AI Raporları (Seçilen Soruya Özel) */}
+                {/* SAĞ: Bu Soruya Ait Detaylı AI Raporu */}
                 <div>
-                    <AIDetailedReports 
-                        // 🚀 HATA ÇÖZÜMÜ 2: Prop adı 'candidate' olarak düzeltildi
-                        candidate={application as any} // Alt bileşen 'candidate' beklediği için 'application' gönderildi
+                   {/* DİKKAT: AIDetailedReports bileşeni 'application' prop'u almalı */}
+                   <AIDetailedReports 
+                        application={application}
                         activeQuestionId={activeQuestionId} 
                     />
                 </div>
-              </section>
+              </div>
             </TabsContent>
           ))}
         </Tabs>
         
-        {/* Genel Analiz (Tüm Videoların Özeti) */}
-        <AIGeneralAnalysis application={application} /> 
+        {/* 2. GENEL ANALİZ ÖZETİ */}
+        <div className="mt-12">
+            <AIGeneralAnalysis application={application} /> 
+        </div>
         
-        {/* Yönetim Araçları */}
-        <CandidateManagement 
-            // 🚀 HATA ÇÖZÜMÜ 2: Prop adı 'candidate' olarak düzeltildi
-            candidate={application as any} 
-        />
+        {/* 3. YÖNETİM PANELİ (Durum Güncelleme vb.) */}
+        <div className="mt-12">
+            <CandidateManagement application={application} />
+        </div>
+
       </motion.div>
     </div>
   )

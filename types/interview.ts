@@ -12,6 +12,42 @@ export enum InterviewStatus {
 }
 
 /**
+ * Mülakat tipi
+ */
+export type InterviewType = "async-video" | "live-video" | "audio-only" | "text-based";
+
+/**
+ * AI Analiz Ayarları (Backend ile eşitlendi)
+ */
+export interface AiAnalysisSettings {
+  useAutomaticScoring: boolean;
+  gestureAnalysis: boolean;
+  speechAnalysis: boolean;
+  eyeContactAnalysis: boolean;
+  tonalAnalysis: boolean;
+  keywordMatchScore: number;
+}
+
+/**
+ * Pozisyon yetkinlik ağırlıkları
+ */
+export interface CompetencyWeights {
+  technical?: number;
+  communication?: number;
+  problem_solving?: number;
+}
+
+/**
+ * Pozisyon bilgileri
+ */
+export interface InterviewPosition {
+  title: string;
+  department?: string;
+  competencyWeights?: CompetencyWeights;
+  description?: string;
+}
+
+/**
  * Mülakat için her bir soru modeli
  */
 export interface InterviewQuestion {
@@ -23,7 +59,7 @@ export interface InterviewQuestion {
   order: number;
   duration: number;
   aiMetadata: {
-    complexityLevel: "low" | "medium" | "high";
+    complexityLevel: "low" | "medium" | "high" | "intermediate" | "advanced";
     requiredSkills: string[];
     keywordMatchScore?: number;
   };
@@ -35,9 +71,12 @@ export interface InterviewQuestion {
  * Mülakat modeli (API'dan gelen veri yapısı)
  */
 export interface Interview {
-  _id: string; 
+  _id: string;
   title: string;
-  expirationDate: string; // ISO formatlı tarih
+  description?: string;
+  expirationDate: string; // Backend'den JSON string gelir
+  type?: InterviewType;
+  position?: InterviewPosition;
   createdBy: {
     userId: string;
   };
@@ -49,35 +88,47 @@ export interface Interview {
   };
   interviewLink?: {
     link: string;
-    expirationDate?: string; 
+    expirationDate?: string;
   };
   questions: InterviewQuestion[];
-  createdAt: string; 
+  
+  // ✅ EKLENDİ: AI Analiz Ayarları
+  aiAnalysisSettings?: AiAnalysisSettings;
+  
+  createdAt: string;
   updatedAt: string;
 }
 
 /**
- * Mülakat oluşturma DTO’su (POST /interviews)
+ * Mülakat oluşturma DTO'su (POST /interviews)
  */
 export interface CreateInterviewDTO {
   title: string;
-  expirationDate: string | Date; // Hem string hem Date kabul et
+  description?: string;
+  expirationDate: string | Date;
+  type?: InterviewType;
+  position?: InterviewPosition;
   personalityTestId?: string;
-  stages?: { // Optional yapıldı, backend'de default değer atılıyor
+  stages?: {
     personalityTest: boolean;
     questionnaire: boolean;
   };
   status?: InterviewStatus;
   questions?: InterviewQuestion[];
+  
+  // ✅ EKLENDİ: AI Ayarları Oluştururken
+  aiAnalysisSettings?: AiAnalysisSettings;
 }
 
 /**
  * Mülakat güncelleme DTO'su (PUT /interviews/:id)
- * Tüm alanlar optional olmalı.
  */
 export interface UpdateInterviewDTO {
   title?: string;
+  description?: string;
   expirationDate?: string | Date;
+  type?: InterviewType;
+  position?: InterviewPosition;
   stages?: {
     personalityTest: boolean;
     questionnaire: boolean;
@@ -85,6 +136,9 @@ export interface UpdateInterviewDTO {
   status?: InterviewStatus;
   questions?: InterviewQuestion[];
   personalityTestId?: string;
+
+  // ✅ EKLENDİ: AI Ayarları Güncellerken
+  aiAnalysisSettings?: AiAnalysisSettings;
 }
 
 // --- STORE ve DİĞER MODELLER ---
@@ -113,17 +167,13 @@ export interface InterviewStoreState {
 
 /**
  * Interview Store'un işlemlerini tanımlayan interface
- * Frontend Store'un nihai metot listesini yansıtır.
  */
 export interface InterviewStoreActions {
   fetchInterviews: () => Promise<void>;
   getInterviewById: (id: string) => Promise<void>;
   createInterview: (data: CreateInterviewDTO) => Promise<Interview>;
-  // 🚨 Güncel tip: Partial<UpdateInterviewDTO> veya UpdateInterviewDTO olabilir
   updateInterview: (id: string, data: Partial<UpdateInterviewDTO>) => Promise<void>;
-  // 🚨 Yeni eklenen yayınlama metodu
   publishInterview: (id: string) => Promise<Interview>;
   deleteInterview: (id: string) => Promise<void>;
   updateInterviewLink: (id: string, data: { expirationDate: string }) => Promise<string>;
 }
-

@@ -1,97 +1,96 @@
 // src/services/applicationService.ts
 
 import api from '@/utils/api';
-import { Application, ApplicationFilters } from '@/types/application'; // ✅ ApplicationFilters import edildi
+import { 
+    Application, 
+    ApplicationQueryParams, 
+    PaginatedApplicationResponse 
+} from '@/types/application';
 
-// ✅ YENİ TİP: Backend'den beklediğimiz sayfalandırılmış yanıt yapısı
-interface PaginatedResponse {
-    success: boolean;
-    data: Application[];
-    meta: {
-        total: number;
-        page: number;
-        limit: number;
-    };
-}
 /**
- * ✅ YENİ METOT: Belirli bir Mülakat ID'sine ait başvuruları getirir.
- * Bu, mülakat detay sayfasının (InterviewDetailPage) ihtiyaç duyduğu asıl fonksiyondur.
+ * Ana başvuru çekme fonksiyonu - Server-side filter/pagination destekli
+ * 
+ * @param params - Query parametreleri
+ * @returns PaginatedApplicationResponse - Sayfalanmış başvuru listesi
+ * 
+ * Backend endpoint: GET /applications
+ * Query params: page, limit, interviewId?, status?, query?, aiScoreMin?, sortBy?, sortOrder?
+ */
+export const getApplications = async (
+    params: ApplicationQueryParams = {}
+): Promise<PaginatedApplicationResponse> => {
+    try {
+        const queryParams = new URLSearchParams();
+        
+        // Sayfalama parametreleri (varsayılan değerler)
+        queryParams.append('page', String(params.page ?? 1));
+        queryParams.append('limit', String(params.limit ?? 10));
+        
+        // Filtre parametreleri
+        if (params.interviewId) {
+            queryParams.append('interviewId', params.interviewId);
+        }
+        if (params.status && params.status !== 'all') {
+            queryParams.append('status', params.status);
+        }
+
+        // ✅ EKLENDİ: Backend'deki AI Analiz Durumu Filtresi
+        // Bu sayede "Tamamlananlar" ve "Bekleyenler" sekmeleri çalışacak
+        if (params.analysisStatus && params.analysisStatus !== 'all') {
+            queryParams.append('analysisStatus', params.analysisStatus);
+        }
+
+        if (params.query && params.query.trim() !== '') {
+            queryParams.append('query', params.query.trim());
+        }
+        if (params.aiScoreMin !== undefined && params.aiScoreMin > 0) {
+            queryParams.append('aiScoreMin', String(params.aiScoreMin));
+        }
+        
+        // Sıralama parametreleri
+        if (params.sortBy) {
+            queryParams.append('sortBy', params.sortBy);
+        }
+        if (params.sortOrder) {
+            queryParams.append('sortOrder', params.sortOrder);
+        }
+
+        const response = await api.get<PaginatedApplicationResponse>(
+            `/applications?${queryParams.toString()}`
+        );
+        
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching applications:', error);
+        throw error;
+    }
+};
+
+/**
+ * Belirli bir Mülakat ID'sine ait başvuruları getirir.
+ * Mülakat detay sayfası için optimize edilmiş versiyon.
+ * 
+ * @param interviewId - Mülakat ID'si
+ * @returns Application[] - Başvuru listesi
  */
 export const getApplicationsByInterviewId = async (
     interviewId: string
 ): Promise<Application[]> => {
     try {
-        // Bu, aslında getFilteredApplications metodunu 'interviewId' filtresiyle çağırır.
-        // Backend'in bu filtreyi desteklediğini varsayıyoruz.
-        const response = await getFilteredApplications(
-            { interviewId: interviewId } as Partial<ApplicationFilters>, // interviewId filtresi ekleniyor
-            1, // Sayfa 1
-            100 // Yüksek limit, muhtemelen tüm başvurular listelenecek
-        );
-
-        return response.data; 
-
+        const response = await getApplications({
+            interviewId,
+            page: 1,
+            limit: 100 // Mülakat başına tüm başvuruları getir
+        });
+        return response.data;
     } catch (error) {
         console.error(`Error fetching applications for interview ${interviewId}:`, error);
         throw error;
     }
 };
-/**
- * ✅ YENİ METOT: Filtreler, sayfalama ve limit ile başvuruları getirir.
- * Bu, İK panelinin ana veri çekme fonksiyonu olacaktır.
- */
-export const getFilteredApplications = async (
-    filters: Partial<ApplicationFilters>,
-    page: number = 1,
-    limit: number = 10
-): Promise<PaginatedResponse> => {
-    try {
-        // Filtre objesini Query Parametrelerine dönüştür
-        const queryParams = new URLSearchParams();
-        
-        // Temel sayfalandırma parametreleri
-        queryParams.append('page', page.toString());
-        queryParams.append('limit', limit.toString());
-
-        // Dinamik filtreleri ekle
-        Object.keys(filters).forEach(key => {
-            const value = filters[key as keyof ApplicationFilters];
-            
-            if (value !== undefined && value !== null && value !== 'all' && value !== '') {
-                // Tarih aralığı gibi karmaşık objeler özel olarak ele alınabilir
-                if (key === 'dateRange' && typeof value === 'object') {
-                    if (value.from) queryParams.append('dateFrom', value.from.toISOString());
-                    if (value.to) queryParams.append('dateTo', value.to.toISOString());
-                } else if (key === 'searchTerm') {
-                    queryParams.append('query', value as string); // Backend 'query' bekliyor
-                } else {
-                    queryParams.append(key, String(value));
-                }
-            }
-        });
-
-        const response = await api.get<PaginatedResponse>(`/applications?${queryParams.toString()}`);
-        return response.data; // Tüm yanıtı (data ve meta) döndürüyoruz
-
-    } catch (error) {
-        console.error('Error fetching filtered applications:', error);
-        throw error;
-    }
-};
-
-/**
- * Tüm başvuruları getiren fonksiyon (Artık filtreli metodu kullanacak).
- * Bu metot, filtre/sayfalama gerektirmeyen basit çağrılar için geriye dönük uyumluluğu sağlar.
- */
-export const getApplications = async (): Promise<Application[]> => {
-    // ✅ DÜZELTME: Eski metot, yeni filtreli metodu varsayılan değerlerle çağırıyor.
-    const response = await getFilteredApplications({}, 1, 50); 
-    return response.data;
-};
 
 /**
  * Tek bir başvuruyu ID ile getiren fonksiyon.
- * ... mevcut kod ...
  */
 export const getApplicationById = async (id: string): Promise<Application> => {
     try {

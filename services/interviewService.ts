@@ -1,34 +1,71 @@
-import {api }from "@/utils/api";
+import { api } from "@/utils/api";
 import { CreateInterviewDTO, Interview } from "@/types/interview";
-import { UpdateInterviewDTO } from "@/types/updateInterviewDTO"; // Backend'deki DTO'lar ile uyum için eklendi
+import { UpdateInterviewDTO } from "@/types/interview"; 
 
 export const interviewService = {
   /**
    * Yeni mülakat oluşturma
    */
   async createInterview(data: CreateInterviewDTO): Promise<Interview> {
-    // ✅ Tarihi backend'e uygun hale getiriyoruz
-    const formattedData: Partial<CreateInterviewDTO> = {
-      ...data,
-      // Frontend'de Date objesi veya timestamp gelebilir, ISO formatına çevriliyor
-      expirationDate: new Date(data.expirationDate).toISOString(), 
-      // Backend'in beklediği DTO'ya uymayan alanları (örneğin _id) temizliyoruz
-      questions: data.questions?.map((q) => {
-        // Alt şemadaki gereksiz MongoDB ID'sini kaldırıyoruz
-        const { _id, aiMetadata, ...rest } = q as any; 
+    // Backend DTO'suna uygun formatlama
+    const formattedData = {
+      // Temel alanlar
+      title: data.title,
+      description: data.description || "",
+      expirationDate: new Date(data.expirationDate).toISOString(),
+      
+      // Mülakat tipi
+      type: data.type || "async-video",
+      
+      // Pozisyon bilgileri
+      position: data.position ? {
+        title: data.position.title,
+        department: data.position.department || "",
+        description: data.position.description || "",
+        competencyWeights: data.position.competencyWeights ? {
+          technical: data.position.competencyWeights.technical,
+          communication: data.position.competencyWeights.communication,
+          problem_solving: data.position.competencyWeights.problem_solving,
+        } : undefined,
+      } : undefined,
+
+      // ✅ EKLENDİ: AI Analiz Ayarları (Backend bekliyor)
+      aiAnalysisSettings: data.aiAnalysisSettings ? {
+        useAutomaticScoring: data.aiAnalysisSettings.useAutomaticScoring,
+        gestureAnalysis: data.aiAnalysisSettings.gestureAnalysis,
+        speechAnalysis: data.aiAnalysisSettings.speechAnalysis,
+        eyeContactAnalysis: data.aiAnalysisSettings.eyeContactAnalysis,
+        tonalAnalysis: data.aiAnalysisSettings.tonalAnalysis,
+        keywordMatchScore: data.aiAnalysisSettings.keywordMatchScore,
+      } : undefined,
+      
+      // Mevcut alanlar
+      personalityTestId: (data.personalityTestId && data.personalityTestId.length > 0) 
+      ? data.personalityTestId 
+      : undefined,
+      stages: data.stages || { personalityTest: false, questionnaire: true },
+      status: data.status,
+      
+      // Sorular
+      questions: data.questions?.map((q, index) => {
+        const { _id, ...rest } = q as any;
         return {
-          ...rest,
+          questionText: rest.questionText,
+          expectedAnswer: rest.expectedAnswer || "",
+          explanation: rest.explanation || "",
+          keywords: rest.keywords || [],
+          order: rest.order ?? index + 1,
+          duration: rest.duration || 60,
           aiMetadata: {
-            complexityLevel: aiMetadata.complexityLevel,
-            requiredSkills: aiMetadata.requiredSkills,
-          }, 
+            complexityLevel: rest.aiMetadata?.complexityLevel || "medium",
+            requiredSkills: rest.aiMetadata?.requiredSkills || [],
+          },
         };
       }) || [],
     };
 
-    // 🚨 Endpoint Düzeltmesi: '/interviews/create' yerine '/' kullanıldı
     const response = await api.post("/interviews", formattedData);
-    return response.data.data; 
+    return response.data.data;
   },
 
 
@@ -41,7 +78,6 @@ export const interviewService = {
       return response.data.data; 
     } catch (error: any) {
       console.error("Kullanıcının mülakatlarını çekerken hata oluştu:", error);
-      // Hata middleware'i tarafından yakalanıp daha temiz bir mesaj gösterilmesi beklenebilir.
       throw new Error("Mülakatlar yüklenemedi, lütfen tekrar deneyin.");
     }
   },
@@ -60,65 +96,106 @@ export const interviewService = {
   },
 
   /**
-   * Mülakatı güncelleme (PUT /:id rotasına tüm güncellemeleri toplar)
+   * Mülakatı güncelleme
    */
   async updateInterview(id: string, updateData: Partial<UpdateInterviewDTO>): Promise<Interview> {
-    // Güncelleme verisinde tarih varsa, ISO formatına çevir
-    const payload = { ...updateData } as any;
-    if (payload.expirationDate) {
-      payload.expirationDate = new Date(payload.expirationDate).toISOString();
+    const payload: any = {};
+    
+    // Temel alanlar
+    if (updateData.title !== undefined) payload.title = updateData.title;
+    if (updateData.description !== undefined) payload.description = updateData.description;
+    if (updateData.expirationDate) {
+      payload.expirationDate = new Date(updateData.expirationDate).toISOString();
     }
     
-    // 🚨 Endpoint Düzeltmesi: '/interview/' (tekil) yerine '/interviews/' (çoğul) kullanıldı.
+    // Mülakat tipi
+    if (updateData.type !== undefined) payload.type = updateData.type;
+    
+    // Pozisyon bilgileri
+    if (updateData.position) {
+      payload.position = {
+        title: updateData.position.title,
+        department: updateData.position.department || "",
+        description: updateData.position.description || "",
+        competencyWeights: updateData.position.competencyWeights ? {
+          technical: updateData.position.competencyWeights.technical,
+          communication: updateData.position.competencyWeights.communication,
+          problem_solving: updateData.position.competencyWeights.problem_solving,
+        } : undefined,
+      };
+    }
+
+    // ✅ EKLENDİ: AI Analiz Ayarları Güncelleme
+    if (updateData.aiAnalysisSettings) {
+      payload.aiAnalysisSettings = {
+        useAutomaticScoring: updateData.aiAnalysisSettings.useAutomaticScoring,
+        gestureAnalysis: updateData.aiAnalysisSettings.gestureAnalysis,
+        speechAnalysis: updateData.aiAnalysisSettings.speechAnalysis,
+        eyeContactAnalysis: updateData.aiAnalysisSettings.eyeContactAnalysis,
+        tonalAnalysis: updateData.aiAnalysisSettings.tonalAnalysis,
+        keywordMatchScore: updateData.aiAnalysisSettings.keywordMatchScore,
+      };
+    }
+    
+    // Mevcut alanlar
+    if (updateData.personalityTestId !== undefined) {
+    // Boş string gelirse null gönder (ilişkiyi koparmak için) veya undefined gönder (değiştirmemek için)
+    // Eğer veritabanından silmek istiyorsak null göndermeliyiz.
+    payload.personalityTestId = updateData.personalityTestId === "" ? null : updateData.personalityTestId;
+}   if (updateData.stages !== undefined) payload.stages = updateData.stages;
+    if (updateData.status !== undefined) payload.status = updateData.status;
+    
+    // Sorular
+    if (updateData.questions) {
+      payload.questions = updateData.questions.map((q, index) => {
+        const { _id, ...rest } = q as any;
+        return {
+          questionText: rest.questionText,
+          expectedAnswer: rest.expectedAnswer || "",
+          explanation: rest.explanation || "",
+          keywords: rest.keywords || [],
+          order: rest.order ?? index + 1,
+          duration: rest.duration || 60,
+          aiMetadata: {
+            complexityLevel: rest.aiMetadata?.complexityLevel || "medium",
+            requiredSkills: rest.aiMetadata?.requiredSkills || [],
+          },
+        };
+      });
+    }
+    
     const response = await api.put(`/interviews/${id}`, payload);
-    return response.data.data; 
+    return response.data.data;
   },
 
   /**
-   * Mülakatı yayınlama (Backend'deki PATCH /:id/publish rotasına uyar)
+   * Mülakatı yayınlama
    */
   async publishInterview(id: string): Promise<Interview> {
-    // 🚨 Yeni Metot ve Endpoint: PATCH /:id/publish
-    // Backend'deki Controller/Service mantığına uyum sağlandı.
     const response = await api.patch(`/interviews/${id}/publish`);
     return response.data.data;
   },
 
   /**
-   * Mülakatı silme (Soft Delete)
+   * Mülakatı silme
    */
   async deleteInterview(id: string) {
-    // 🚨 Endpoint Düzeltmesi: '/interview/' (tekil) yerine '/interviews/' (çoğul) kullanıldı.
-    // Backend'de soft delete bu rotada yapılıyor.
     await api.delete(`/interviews/${id}`);
   },
   
   /**
-   * Mülakat Linkini Güncelleme (Endpoint'i koruyoruz)
-   */
- /**
-   * Mülakat Linkini Güncelleme (Süre Uzatma ve Link Yenileme)
-   * PATCH /:id/link rotasını kullanır.
-   * @returns Güncellenmiş Link objesini ({ link: string, expirationDate: string }) döndürür.
+   * Mülakat Linkini Güncelleme
    */
   async generateInterviewLink(
     id: string, 
     expirationDate?: string | number
-  ): Promise<{ link: string; expirationDate: string }> { // 📌 Dönüş tipi güncellendi!
+  ): Promise<{ link: string; expirationDate: string }> { 
     
     const payload = { 
       expirationDate: expirationDate ? new Date(expirationDate).toISOString() : undefined
     };
     
-    // API'den gelen yanıtın (response.data.data) sadece InterviewLink objesi olduğu varsayılır.
-    // Eğer backend tüm Interview objesini döndürüyorsa, burada ayrıştırma yapmalıyız.
     const response = await api.patch(`/interviews/${id}/link`, payload);
-
-    // 🚨 Varsayım: Backend sadece link objesini ({link, expirationDate}) dönüyor.
-    // Eğer tüm Interview objesi dönüyorsa: return response.data.data.interviewLink;
-    
-    // Güvenli olması için, Backend'in sadece link objesi döndürdüğü varsayımıyla devam edelim:
     return response.data.data; 
   },
 };
-

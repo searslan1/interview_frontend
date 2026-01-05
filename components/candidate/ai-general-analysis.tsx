@@ -13,9 +13,7 @@
     const generalAnalysis = application.generalAIAnalysis || {}; 
     const personalityResults = application.personalityTestResults || {};
 
-    // Not: personalityType ve currentMood gibi alanlar Backend IGeneralAIAnalysis'te yok. 
-    // Backend'in bu tür metin alanlarını recommendation veya strengths içinde dönmesi gerekebilir.
-    // Şimdilik Backend yapımızdaki mevcut skorları kullanıyoruz.
+  
 
     return (
       <Card className="mt-4">

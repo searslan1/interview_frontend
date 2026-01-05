@@ -1,19 +1,31 @@
 "use client";
 
-import { Controller, UseFormReturn } from "react-hook-form"; // Controller import edildi
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Controller, UseFormReturn } from "react-hook-form";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import Image from "next/image";
-
+import { Video, Mic, MessageSquare, Users, Briefcase, Building2, BarChart3 } from "lucide-react";
 
 interface InterviewGeneralInfoProps {
   form: UseFormReturn<any>;
 }
+
+// Mülakat tipi seçenekleri
+const interviewTypes = [
+  { value: "async-video", label: "Asenkron Video", icon: Video, description: "Adaylar kendi zamanlarında video yanıtı kaydeder" },
+  { value: "live-video", label: "Canlı Video", icon: Users, description: "Gerçek zamanlı video görüşme" },
+  { value: "audio-only", label: "Sadece Ses", icon: Mic, description: "Sesli mülakat formatı" },
+  { value: "text-based", label: "Metin Tabanlı", icon: MessageSquare, description: "Yazılı yanıt formatı" },
+];
 
 export function InterviewGeneralInfo({ form }: InterviewGeneralInfoProps) {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -30,76 +42,326 @@ export function InterviewGeneralInfo({ form }: InterviewGeneralInfoProps) {
     }
   };
 
+  // Yetkinlik ağırlıklarını al
+  const competencyWeights = form.watch("position.competencyWeights") || {
+    technical: 40,
+    communication: 30,
+    problem_solving: 30,
+  };
+
+  // Ağırlık güncelleme fonksiyonu
+  const updateCompetencyWeight = (field: string, value: number) => {
+    form.setValue(`position.competencyWeights.${field}`, value);
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Mülakat Genel Bilgileri</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Mülakat Başlığı */}
-        <div>
-          <Label htmlFor="title">Mülakat Başlığı</Label>
-          <Input id="title" {...form.register("title")} />
-        </div>
-
-        {/* Mülakat Açıklaması */}
-        <div>
-          <Label htmlFor="description">Mülakat Açıklaması</Label>
-          <Textarea id="description" {...form.register("description")} />
-        </div>
-
-        {/* Tarihler (Başlangıç / Bitiş) */}
-        <div className="flex space-x-4">
-          <Controller
-            name="expirationDate" // Form state'indeki alan adı
-            control={form.control}
-            render={({ field }) => (
-              <div className="flex flex-col space-y-2">
-                <Label htmlFor="expirationDate">Bitiş Tarihi</Label>
-                <DatePicker
-                  id="expirationDate"
-                  // RHF'den gelen ISO string'i Date objesine çeviriyoruz.
-                  date={field.value ? new Date(field.value) : undefined}
-                  
-                  // DatePicker'dan gelen Date objesini, RHF'ye yazmadan önce ISO String'e çeviriyoruz.
-                  onSelect={(date) => field.onChange(date?.toISOString() ?? "")}
-                />
-              </div>
-            )}
-          />
-        </div>
-
-        {/* Kişilik Testi */}
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="hasPersonalityTest"
-            checked={form.getValues("stages.personalityTest")}
-            onCheckedChange={(checked) => form.setValue("stages.personalityTest", checked)}
-          />
-          <Label htmlFor="hasPersonalityTest">Kişilik Envanteri İçersin</Label>
-        </div>
-
-        {/* Kişilik Testi ID (Opsiyonel) */}
-        {form.getValues("stages.personalityTest") && (
-          <div>
-            <Label htmlFor="personalityTestId">Kişilik Testi ID</Label>
-            <Input id="personalityTestId" {...form.register("personalityTestId")} />
-          </div>
-        )}
-
-        {/* Mülakat Görseli / Logo */}
-        <div>
-          <Label htmlFor="logo">Mülakat Görseli / Logo</Label>
-          <div className="mt-2 flex items-center space-x-4">
-            <Input id="logo" type="file" accept="image/*" onChange={handleLogoUpload} className="w-full" />
-            {logoPreview && (
-              <div className="relative w-16 h-16">
-                <Image src={logoPreview || "/placeholder.svg"} alt="Logo preview" layout="fill" objectFit="cover" />
-              </div>
+    <div className="space-y-6">
+      {/* Temel Bilgiler Kartı */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Briefcase className="h-5 w-5" />
+            Temel Bilgiler
+          </CardTitle>
+          <CardDescription>Mülakatın temel bilgilerini girin</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Mülakat Başlığı */}
+          <div className="space-y-2">
+            <Label htmlFor="title">
+              Mülakat Başlığı <span className="text-destructive">*</span>
+            </Label>
+            <Input 
+              id="title" 
+              placeholder="Örn: Senior Frontend Developer Mülakatı"
+              {...form.register("title")} 
+            />
+            {form.formState.errors.title && (
+              <p className="text-sm text-destructive">{form.formState.errors.title.message as string}</p>
             )}
           </div>
-        </div>
-      </CardContent>
-    </Card>
+
+          {/* Mülakat Açıklaması */}
+          <div className="space-y-2">
+            <Label htmlFor="description">Mülakat Açıklaması</Label>
+            <Textarea 
+              id="description" 
+              placeholder="Mülakat hakkında kısa bir açıklama yazın..."
+              rows={3}
+              {...form.register("description")} 
+            />
+          </div>
+
+          {/* Mülakat Tipi */}
+          <div className="space-y-2">
+            <Label>Mülakat Tipi</Label>
+            <Controller
+              name="type"
+              control={form.control}
+              render={({ field }) => (
+                <div className="grid grid-cols-2 gap-3">
+                  {interviewTypes.map((type) => {
+                    const Icon = type.icon;
+                    const isSelected = field.value === type.value;
+                    return (
+                      <div
+                        key={type.value}
+                        onClick={() => field.onChange(type.value)}
+                        className={`
+                          relative flex flex-col items-center p-4 rounded-lg border-2 cursor-pointer transition-all
+                          ${isSelected 
+                            ? 'border-primary bg-primary/5' 
+                            : 'border-muted hover:border-muted-foreground/50'
+                          }
+                        `}
+                      >
+                        <Icon className={`h-6 w-6 mb-2 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <span className={`font-medium text-sm ${isSelected ? 'text-primary' : ''}`}>
+                          {type.label}
+                        </span>
+                        <span className="text-xs text-muted-foreground text-center mt-1">
+                          {type.description}
+                        </span>
+                        {isSelected && (
+                          <Badge className="absolute -top-2 -right-2" variant="default">
+                            Seçili
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            />
+          </div>
+
+          {/* Bitiş Tarihi */}
+          <div className="space-y-2">
+            <Controller
+              name="expirationDate"
+              control={form.control}
+              render={({ field }) => (
+                <div className="flex flex-col space-y-2">
+                  <Label htmlFor="expirationDate">
+                    Son Başvuru Tarihi <span className="text-destructive">*</span>
+                  </Label>
+                  <DatePicker
+                    id="expirationDate"
+                    date={field.value ? new Date(field.value) : undefined}
+                    onSelect={(date) => field.onChange(date?.toISOString() ?? "")}
+                  />
+                </div>
+              )}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Pozisyon Bilgileri Kartı */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            Pozisyon Bilgileri
+          </CardTitle>
+          <CardDescription>AI analizi için pozisyon detaylarını belirtin</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Pozisyon Adı */}
+          <div className="space-y-2">
+            <Label htmlFor="position.title">
+              Pozisyon Adı <span className="text-destructive">*</span>
+            </Label>
+            <Input 
+              id="position.title" 
+              placeholder="Örn: Senior Frontend Developer"
+              {...form.register("position.title")} 
+            />
+            {(form.formState.errors.position as any)?.title && (
+              <p className="text-sm text-destructive">{(form.formState.errors.position as any).title.message}</p>
+            )}
+          </div>
+
+          {/* Departman */}
+          <div className="space-y-2">
+            <Label htmlFor="position.department">Departman</Label>
+            <Controller
+              name="position.department"
+              control={form.control}
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value || ""}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Departman seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="engineering">Mühendislik</SelectItem>
+                    <SelectItem value="product">Ürün</SelectItem>
+                    <SelectItem value="design">Tasarım</SelectItem>
+                    <SelectItem value="marketing">Pazarlama</SelectItem>
+                    <SelectItem value="sales">Satış</SelectItem>
+                    <SelectItem value="hr">İnsan Kaynakları</SelectItem>
+                    <SelectItem value="finance">Finans</SelectItem>
+                    <SelectItem value="operations">Operasyon</SelectItem>
+                    <SelectItem value="other">Diğer</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+
+          {/* Pozisyon Açıklaması */}
+          <div className="space-y-2">
+            <Label htmlFor="position.description">Pozisyon Açıklaması</Label>
+            <Textarea 
+              id="position.description" 
+              placeholder="Pozisyon gereksinimleri ve beklentiler..."
+              rows={3}
+              {...form.register("position.description")} 
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Yetkinlik Ağırlıkları Kartı */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Değerlendirme Ağırlıkları
+          </CardTitle>
+          <CardDescription>AI analiz sonuçlarında hangi yetkinliklere ne kadar ağırlık verileceğini belirleyin</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Teknik Yetkinlik */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <Label>Teknik Yetkinlik</Label>
+              <Badge variant="outline">{competencyWeights.technical || 40}%</Badge>
+            </div>
+            <Slider
+              value={[competencyWeights.technical || 40]}
+              onValueChange={(value) => updateCompetencyWeight("technical", value[0])}
+              max={100}
+              step={5}
+              className="w-full"
+            />
+            <p className="text-xs text-muted-foreground">
+              Teknik bilgi, problem çözme ve kodlama becerileri
+            </p>
+          </div>
+
+          <Separator />
+
+          {/* İletişim Yetkinliği */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <Label>İletişim Yetkinliği</Label>
+              <Badge variant="outline">{competencyWeights.communication || 30}%</Badge>
+            </div>
+            <Slider
+              value={[competencyWeights.communication || 30]}
+              onValueChange={(value) => updateCompetencyWeight("communication", value[0])}
+              max={100}
+              step={5}
+              className="w-full"
+            />
+            <p className="text-xs text-muted-foreground">
+              Sözlü ve yazılı iletişim, sunum becerileri
+            </p>
+          </div>
+
+          <Separator />
+
+          {/* Problem Çözme */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <Label>Problem Çözme</Label>
+              <Badge variant="outline">{competencyWeights.problem_solving || 30}%</Badge>
+            </div>
+            <Slider
+              value={[competencyWeights.problem_solving || 30]}
+              onValueChange={(value) => updateCompetencyWeight("problem_solving", value[0])}
+              max={100}
+              step={5}
+              className="w-full"
+            />
+            <p className="text-xs text-muted-foreground">
+              Analitik düşünme, yaratıcı çözümler üretme
+            </p>
+          </div>
+
+          {/* Toplam Ağırlık Uyarısı */}
+          {(competencyWeights.technical + competencyWeights.communication + competencyWeights.problem_solving) !== 100 && (
+            <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                ⚠️ Toplam ağırlık: {competencyWeights.technical + competencyWeights.communication + competencyWeights.problem_solving}% 
+                (Önerilen: 100%)
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Ek Ayarlar Kartı */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Ek Ayarlar</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Kişilik Testi */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="hasPersonalityTest">Kişilik Envanteri</Label>
+              <p className="text-sm text-muted-foreground">
+                Adaylardan kişilik testi tamamlamalarını isteyin
+              </p>
+            </div>
+            <Switch
+              id="hasPersonalityTest"
+              checked={form.watch("stages.personalityTest")}
+              onCheckedChange={(checked) => form.setValue("stages.personalityTest", checked)}
+            />
+          </div>
+
+          {/* Kişilik Testi ID */}
+          {form.watch("stages.personalityTest") && (
+            <div className="space-y-2 pl-4 border-l-2 border-primary">
+              <Label htmlFor="personalityTestId">Kişilik Testi ID</Label>
+              <Input 
+                id="personalityTestId" 
+                placeholder="Kişilik testi ID'sini girin"
+                {...form.register("personalityTestId")} 
+              />
+            </div>
+          )}
+
+          <Separator />
+
+          {/* Mülakat Görseli */}
+          <div className="space-y-2">
+            <Label htmlFor="logo">Mülakat Görseli / Logo</Label>
+            <div className="flex items-center gap-4">
+              <Input 
+                id="logo" 
+                type="file" 
+                accept="image/*" 
+                onChange={handleLogoUpload} 
+                className="flex-1" 
+              />
+              {logoPreview && (
+                <div className="relative w-16 h-16 rounded-lg overflow-hidden border">
+                  <Image 
+                    src={logoPreview} 
+                    alt="Logo preview" 
+                    fill 
+                    className="object-cover" 
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

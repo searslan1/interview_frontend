@@ -17,11 +17,12 @@ interface CandidateProfile {
   count: number;
 }
 
-interface FavoriteCandidate {
+export interface FavoriteCandidate {
   id: string;
   name: string;
   position: string;
   score: number;
+  addedAt?: string; // Favoriye eklenme tarihi
 }
 
 interface DashboardStore {

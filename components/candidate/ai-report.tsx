@@ -2,90 +2,146 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Application, GeneralAIAnalysis } from "@/types/application"; // Application ve IGeneralAIAnalysis import edildi
+import { Badge } from "@/components/ui/badge"
+import { Application } from "@/types/application"
+import { Brain, TrendingUp, AlertTriangle, Lightbulb, CheckCircle2 } from "lucide-react"
 
 interface AIReportProps {
-  application: Application; // ✅ applicationId yerine tüm application objesini alacak
+  application: Application;
 }
 
 export function AIReport({ application }: AIReportProps) {
-  // 🚀 GERÇEK VERİ BAĞLANTISI: generalAIAnalysis ve personalityTestResults çekiliyor
-  const generalAnalysis = application.generalAIAnalysis || {};
-  const personalityResults = application.personalityTestResults || {};
+  // Veri güvenliği: generalAIAnalysis yoksa boş obje ata
+  const analysis = application.generalAIAnalysis;
 
-  // NOT: Backend IGeneralAIAnalysis yapınızda 'gestureAnalysis', 'speechAnalysis' 
-  // veya 'personalityAnalysis' metin alanları direkt olarak yok. 
-  // Bu yüzden mevcut Backend yapınıza uyan skorları kullanıyoruz.
-  
+  if (!analysis) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+          <Brain className="h-10 w-10 mb-4 opacity-50" />
+          <p>Henüz AI analizi oluşturulmamış.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Renk belirleyici helper
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-emerald-600";
+    if (score >= 60) return "text-green-600";
+    if (score >= 40) return "text-yellow-600";
+    return "text-red-600";
+  };
+
   return (
     <div className="space-y-6">
       
-      {/* 1. Genel Uyumluluk (Overall Score) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Genel Uyumluluk Skoru</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Progress value={generalAnalysis.overallScore || 0} className="w-full" />
-          <p className="mt-2 text-center text-lg font-bold">{generalAnalysis.overallScore ?? "N/A"}%</p>
-        </CardContent>
-      </Card>
-
-      {/* 2. Kişilik Uyum Skoru (Personality Match Score) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>AI Kişilik Uyum Skoru</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Progress value={generalAnalysis.personalityMatchScore || 0} className="w-full" />
-          <p className="mt-2 text-center text-lg font-bold">{generalAnalysis.personalityMatchScore ?? "N/A"}%</p>
-        </CardContent>
-      </Card>
-      
-      {/* 3. Güçlü Yönler (Strengths) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Güçlü Yönler</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {(generalAnalysis.strengths && generalAnalysis.strengths.length > 0) ? (
-            <ul className="list-disc list-inside space-y-1">
-              {generalAnalysis.strengths.map((s, i) => <li key={i}>{s}</li>)}
-            </ul>
-          ) : (
-            <p className="text-gray-500">Analiz sonuçlanmadı veya güçlü yön bulunamadı.</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* 4. Geliştirilebilecek Alanlar (Improvement Areas) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Geliştirilebilecek Alanlar & Öneriler</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {(generalAnalysis.areasForImprovement && generalAnalysis.areasForImprovement.length > 0) ? (
-            <div className="space-y-4">
-              {generalAnalysis.areasForImprovement.map((item, i) => (
-                <div key={i} className="border-l-4 border-orange-400 pl-3">
-                  <p className="font-semibold">{item.area}</p>
-                  <p className="text-sm text-gray-600">{item.recommendedAction}</p>
-                </div>
-              ))}
+      {/* 1. Skor Kartları (Grid Yapısı) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Genel Uyumluluk */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Genel Uyumluluk
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-end gap-2 mb-2">
+              <span className={`text-3xl font-bold ${getScoreColor(analysis.overallScore || 0)}`}>
+                {analysis.overallScore ?? 0}
+              </span>
+              <span className="text-sm text-muted-foreground mb-1">/ 100</span>
             </div>
-          ) : (
-            <p className="text-gray-500">Analiz sonuçlanmadı veya geliştirme alanı bulunamadı.</p>
-          )}
-        </CardContent>
-      </Card>
+            <Progress 
+              value={analysis.overallScore || 0} 
+              className="h-2" 
+              // Renk sınıfı progress componentine göre özelleştirilebilir
+            />
+          </CardContent>
+        </Card>
 
-      {/* 5. Genel Öneri (Recommendation) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Genel AI Önerisi</CardTitle>
+        {/* Kişilik Uyumu */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Brain className="h-4 w-4" />
+              Kişilik Uyumu
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+             <div className="flex items-end gap-2 mb-2">
+              <span className={`text-3xl font-bold ${getScoreColor(analysis.personalityMatchScore || 0)}`}>
+                {analysis.personalityMatchScore ?? 0}
+              </span>
+              <span className="text-sm text-muted-foreground mb-1">/ 100</span>
+            </div>
+            <Progress value={analysis.personalityMatchScore || 0} className="h-2" />
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* 2. Güçlü Yönler & Gelişim Alanları (Yan Yana) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Güçlü Yönler */}
+        <div className="space-y-3">
+          <h3 className="font-semibold flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            Güçlü Yönler
+          </h3>
+          <div className="bg-green-50/50 dark:bg-green-900/10 p-4 rounded-lg border border-green-100 dark:border-green-900/30">
+            {(analysis.strengths && analysis.strengths.length > 0) ? (
+              <ul className="space-y-2">
+                {analysis.strengths.map((s, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm">
+                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-green-500 shrink-0" />
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">Veri bulunamadı.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Gelişim Alanları */}
+        <div className="space-y-3">
+          <h3 className="font-semibold flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-orange-600" />
+            Gelişim Alanları
+          </h3>
+          <div className="bg-orange-50/50 dark:bg-orange-900/10 p-4 rounded-lg border border-orange-100 dark:border-orange-900/30">
+            {/* DÜZELTME: areasForImprovement string[] veya object[] olabilir. Güvenli map'leme */}
+            {(analysis.improvementAreas && analysis.improvementAreas.length > 0) ? (
+              <ul className="space-y-2">
+                {analysis.improvementAreas.map((item: any, i: number) => (
+                  <li key={i} className="flex items-start gap-2 text-sm">
+                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-orange-500 shrink-0" />
+                    {/* Eğer string ise direkt yaz, obje ise .area veya .text özelliğini yaz */}
+                    <span>{typeof item === 'string' ? item : (item.area || item.text || JSON.stringify(item))}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">Veri bulunamadı.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Genel Öneri (Recommendation) */}
+      <Card className="bg-primary/5 border-primary/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2 text-primary">
+            <Lightbulb className="h-5 w-5" />
+            Yapay Zeka Görüşü
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="italic text-gray-700">{generalAnalysis.recommendation || "Analizden genel bir öneri alınamadı."}</p>
+          <p className="text-sm leading-relaxed text-foreground/90">
+            {analysis.recommendation || "Analizden genel bir öneri alınamadı."}
+          </p>
         </CardContent>
       </Card>
     </div>

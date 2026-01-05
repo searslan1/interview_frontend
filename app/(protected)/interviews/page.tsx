@@ -5,10 +5,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useInterviewStore } from "@/store/interviewStore";
-import { InterviewList } from "@/components/interview/interview-list";
+import { InterviewList } from "@/components/interview/interview-list"; // Dosya adı küçük harf olabilir kontrol et
 import { FilterSection } from "@/components/interview/filter-section";
 import { CreateInterviewDialog } from "@/components/interview/create-interview-dialog";
-// 📌 DÜZELTME 1: Süre Uzatma Modalı import edildi
 import { ExtendDurationDialog } from "@/components/interview/ExtendDurationDialog"; 
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -21,17 +20,19 @@ export default function InterviewsPage() {
   const [isExtendDialogOpen, setIsExtendDialogOpen] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
 
-  // --- FİLTRE STATE'İ ---
+  // --- FİLTRE STATE'İ (DÜZELTİLDİ) ---
+  // 1. searchTerm artık zorunlu string (başlangıç değeri "")
+  // 2. Tipler genel string yapıldı (FilterSection ve InterviewList ile uyumlu olması için)
   const [filters, setFilters] = useState<{
-    sortBy: "newest" | "oldest";
-    interviewType: "all" | "technical" | "behavioral" | "personality";
-    status: "all" | "active" | "completed" | "draft" | "published" | "inactive";
-    searchTerm?: string;
+    sortBy: string;
+    interviewType: string;
+    status: string;
+    searchTerm: string; // ❗Düzeltme: Soru işareti (?) kaldırıldı
   }>({
     sortBy: "newest",
     interviewType: "all",
     status: "all",
-    searchTerm: "",
+    searchTerm: "", // ❗Düzeltme: Başlangıç değeri boş string atandı
   });
 
   const { interviews, loading, error, fetchInterviews } = useInterviewStore();
@@ -55,7 +56,7 @@ export default function InterviewsPage() {
 
   const handleExtendDuration = useCallback((interviewToExtend: Interview) => {
     setSelectedInterview(interviewToExtend);
-    setIsExtendDialogOpen(true); // Süre uzatma modalını aç
+    setIsExtendDialogOpen(true);
   }, []);
 
   // --- GENEL MODAL YÖNETİMİ ---
@@ -79,7 +80,9 @@ export default function InterviewsPage() {
   }
 
   if (error) {
-    return <div className="text-red-500">Hata: {error}</div>;
+    // Hata mesajı obje gelirse stringe çeviriyoruz
+    const errorMessage = typeof error === 'string' ? error : 'Bilinmeyen bir hata oluştu';
+    return <div className="text-red-500">Hata: {errorMessage}</div>;
   }
 
   return (
@@ -97,12 +100,15 @@ export default function InterviewsPage() {
           {interviews.length > 0 ? (
             <InterviewList 
                 interviews={interviews} 
-                filters={filters} 
+                filters={filters} // Artık tipler uyuşuyor
                 onEdit={handleEdit}
                 onExtendDuration={handleExtendDuration}
             />
           ) : (
-            <p className="text-gray-500">Henüz mülakat bulunmamaktadır.</p>
+            <div className="text-center py-10">
+                <p className="text-gray-500 text-lg">Henüz mülakat bulunmamaktadır.</p>
+                <p className="text-gray-400 text-sm mt-2">Yeni bir mülakat oluşturarak başlayın.</p>
+            </div>
           )}
 
           {/* 1. OLUŞTURMA/DÜZENLEME MODALI */}
@@ -116,7 +122,7 @@ export default function InterviewsPage() {
           <ExtendDurationDialog 
              open={isExtendDialogOpen}
              onOpenChange={handleExtendDialogChange}
-             interview={selectedInterview} // Seçili mülakatı gönder
+             interview={selectedInterview} 
           />
 
         </motion.div>

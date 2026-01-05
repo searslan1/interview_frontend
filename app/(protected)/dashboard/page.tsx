@@ -12,62 +12,79 @@ import { NotificationPanel } from "@/components/dashboard/NotificationPanel";
 import { ChatAssistant } from "@/components/dashboard/ChatAssistant";
 import { FavoriteCandidates } from "@/components/dashboard/FavoriteCandidates";
 import { Interview } from "@/types/interview";
+import { LayoutDashboard } from "lucide-react";
 
 export default function DashboardPage() {
   const { interviews, fetchInterviews, loading } = useInterviewStore();
 
   const fetchData = useCallback(() => {
     fetchInterviews();
-  }, [fetchInterviews]); // ✅ Bağımlılığı sabit tutuyoruz
+  }, [fetchInterviews]);
   
   useEffect(() => {
     fetchData();
   }, [fetchData]);   
   
-  // Örnek: Düzenleme modalını açan (Şu an sadece logluyor)
+  // Örnek: Düzenleme modalını açan
   const handleEdit = useCallback((interviewToEdit: Interview) => {
     console.log("Dashboard'dan Düzenleme Aksiyonu Tetiklendi:", interviewToEdit._id);
-    // Burada, CreateInterviewDialog bileşenini düzenleme modunda açma logic'i gelecektir.
   }, []);
 
-  // Örnek: Süre uzatma modalını açan (Şu an sadece logluyor)
+  // Örnek: Süre uzatma modalını açan
   const handleExtendDuration = useCallback((interviewToExtend: Interview) => {
     console.log("Dashboard'dan Süre Uzatma Aksiyonu Tetiklendi:", interviewToExtend._id);
-    // Burada, Süre Uzatma (Expire Date) modalını açma logic'i gelecektir.
   }, []);
+
   return (
     <main className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">İK Dashboard</h1>
+      {/* Page Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 rounded-lg bg-primary/10">
+          <LayoutDashboard className="h-6 w-6 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">İK Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            Günlük özet ve hızlı aksiyonlar
+          </p>
+        </div>
+      </div>
+
+      {/* KPI Kartları */}
       <OverviewStats />
 
-     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+      {/* Mülakat & Takvim Alanı */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         {loading ? (
-          <p>Yükleniyor...</p>
+          <div className="h-48 bg-muted animate-pulse rounded-lg" />
         ) : interviews?.length > 0 ? (
-          // 📌 DÜZELTME 2: Zorunlu props'lar InterviewCard'a eklendi
           <InterviewCard 
             interview={interviews[0]} 
             isFeatured={true} 
-            onEdit={handleEdit}           // Zorunlu prop eklendi
-            onExtendDuration={handleExtendDuration} // Zorunlu prop eklendi
+            onEdit={handleEdit}
+            onExtendDuration={handleExtendDuration}
           />
-        ) : (
-          <p>Henüz mülakat bulunmuyor.</p>
-        )}
+        ) : null}
         <InterviewCalendar />
       </div>
 
-      {interviews?.length > 0 && <InterviewSlider />} {/* ✅ Slider sadece veri varsa gösterilecek */}
+      {/* Aktif Mülakatlar Slider */}
+      <InterviewSlider />
+
+      {/* Son Başvurular Slider */}
       <ApplicationSlider />
+
+      {/* Grafikler */}
       <DashboardCharts />
-      <FavoriteCandidates />
 
+      {/* Favori Adaylar & Bildirimler */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-  <NotificationPanel />
-  <ChatAssistant />
-</div>
+        <FavoriteCandidates />
+        <NotificationPanel />
+      </div>
 
-
+      {/* Floating Chat Assistant */}
+      <ChatAssistant />
     </main>
   );
 }

@@ -9,28 +9,26 @@ import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ChevronDown } from "lucide-react"
 
-// ✅ Düzeltme denemesi: Next.js takma adlarını kullanıyoruz.
-import { DatePickerWithRange } from "@/components/ui/date-range-picker" 
-import { ApplicationFilters } from "@/types/application"
+import { ApplicationFilterState, ApplicationStatus } from "@/types/application"
 import {useApplicationStore} from "@/store/applicationStore" 
 
 interface AdvancedFiltersProps {
   interviews?: { id: string; title: string }[]
   personalityTypes?: string[]
-  onFilterChange?: (filters: Partial<ApplicationFilters>) => void
+  onFilterChange?: (filters: Partial<ApplicationFilterState>) => void
 }
 
 export function AdvancedFilters({ interviews = [], personalityTypes = [] }: AdvancedFiltersProps) {
   
   const { filters, setFilters } = useApplicationStore(); 
   
-  const [localFilters, setLocalFilters] = useState<Partial<ApplicationFilters>>(filters);
+  const [localFilters, setLocalFilters] = useState<Partial<ApplicationFilterState>>(filters);
 
   useEffect(() => {
     setLocalFilters(filters);
   }, [filters]);
 
-  const handleFilterChange = <K extends keyof ApplicationFilters>(key: K, value: ApplicationFilters[K] | undefined) => {
+  const handleFilterChange = <K extends keyof ApplicationFilterState>(key: K, value: ApplicationFilterState[K] | undefined) => {
     setLocalFilters((prev) => ({ ...prev, [key]: value }));
   }
 
@@ -39,11 +37,16 @@ export function AdvancedFilters({ interviews = [], personalityTypes = [] }: Adva
   }
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const searchTerm = e.target.value;
-    setLocalFilters((prev) => ({ ...prev, searchTerm }));
-    if (searchTerm.length >= 3 || searchTerm.length === 0) {
-      setFilters({ ...localFilters, searchTerm });
+    const query = e.target.value;
+    setLocalFilters((prev) => ({ ...prev, query }));
+    if (query.length >= 3 || query.length === 0) {
+      setFilters({ ...localFilters, query });
     }
+  }
+
+  const handleStatusChange = (value: string) => {
+    const status = value === 'all' ? 'all' : value as ApplicationStatus;
+    handleFilterChange("status", status);
   }
 
 
@@ -61,7 +64,10 @@ export function AdvancedFilters({ interviews = [], personalityTypes = [] }: Adva
           <div>
             <Label>Mülakat Seçimi</Label>
             {interviews.length > 0 && (
-              <Select value={localFilters.interviewId} onValueChange={(value) => handleFilterChange("interviewId", value)}>
+              <Select 
+                value={localFilters.interviewId || 'all'} 
+                onValueChange={(value) => handleFilterChange("interviewId", value === 'all' ? undefined : value)}
+              >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Mülakat seçin" />
                 </SelectTrigger>
@@ -78,89 +84,42 @@ export function AdvancedFilters({ interviews = [], personalityTypes = [] }: Adva
           </div>
 
           <div>
-            <Label>Tarih Aralığı</Label>
-            {/* Prop hatası düzeltildi */}
-            <DatePickerWithRange 
-                onChange={(range) => handleFilterChange("dateRange", range as any)} 
-            />
-          </div>
-
-          <div>
-            <Label>Tamamlanma Durumu</Label>
+            <Label>Durum</Label>
             <Select
-              value={localFilters.completionStatus}
-              onValueChange={(value) => handleFilterChange("completionStatus", value as ApplicationFilters["completionStatus"])}
+              value={localFilters.status || 'all'}
+              onValueChange={handleStatusChange}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Durum" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tümü</SelectItem>
-                <SelectItem value="completed">Tamamlandı</SelectItem>
-                <SelectItem value="inProgress">Devam Ediyor</SelectItem>
-                <SelectItem value="incomplete">Eksik</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>Başvuru Durumu</Label>
-            <Select
-              value={localFilters.applicationStatus}
-              onValueChange={(value) => handleFilterChange("applicationStatus", value as ApplicationFilters["applicationStatus"])}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Durum" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tümü</SelectItem>
-                <SelectItem value="reviewing">İnceleniyor</SelectItem>
                 <SelectItem value="pending">Beklemede</SelectItem>
-                <SelectItem value="positive">Olumlu</SelectItem>
-                <SelectItem value="negative">Olumsuz</SelectItem>
+                <SelectItem value="in_progress">Devam Ediyor</SelectItem>
+                <SelectItem value="completed">Tamamlandı</SelectItem>
+                <SelectItem value="accepted">Kabul Edildi</SelectItem>
+                <SelectItem value="rejected">Reddedildi</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <Label>Minimum AI Uyum Puanı: {localFilters.aiScoreMin}</Label>
+            <Label>Minimum AI Uyum Puanı: {localFilters.aiScoreMin || 0}</Label>
             <Slider
               min={0}
               max={100}
               step={1}
-              value={[localFilters.aiScoreMin as number]} 
+              value={[localFilters.aiScoreMin || 0]} 
               onValueChange={([value]) => handleFilterChange("aiScoreMin", value)}
             />
-          </div>
-
-          <div>
-            <Label>Kişilik Tipi</Label>
-            {personalityTypes.length > 0 && (
-              <Select
-                value={localFilters.personalityType}
-                onValueChange={(value) => handleFilterChange("personalityType", value)}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Kişilik Tipi" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tümü</SelectItem>
-                  {personalityTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
           </div>
 
           <div>
             <Label>Arama</Label>
             <Input
               type="text"
-              placeholder="Aday adı, ID veya anahtar kelime"
-              value={localFilters.searchTerm}
+              placeholder="Aday adı veya anahtar kelime"
+              value={localFilters.query || ''}
               onChange={handleSearchChange} 
             />
           </div>

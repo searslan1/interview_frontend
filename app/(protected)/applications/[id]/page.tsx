@@ -1,115 +1,157 @@
-"use client"
+"use client";
 
+import React from "react";
 import { useParams } from "next/navigation";
-import { CandidateDetailReview } from "@/components/candidate/candidate-detail-review";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Star, Loader2 } from "lucide-react"; // Loader2 (Spinner) import edildi
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner"; 
+import { Star, AlertCircle } from "lucide-react"; 
+
+// Components
+import { CandidateDetailReview } from "@/components/candidate/candidate-detail-review";
+
+// Stores & Hooks
 import { useFavoriteCandidatesStore } from "@/store/favorite-candidates-store";
-import { useApplicationAnalysisStatus } from "@/hooks/useApplicationAnalysisStatus"; // 🚀 Polling Hook'u import edildi
-
-
+import { useApplicationAnalysisStatus } from "@/hooks/useApplicationAnalysisStatus";
 
 export default function CandidateDetailPage() {
-  // useParams() kullanımı varsayımıyla id'yi alıyoruz
   const params = useParams();
+  // ID'yi güvenli bir şekilde alıyoruz
   const applicationId = Array.isArray(params.id) ? params.id[0] : params.id;
 
-  // 1. Hook'u kullanarak başvuruyu çek ve durumu izle
+  // 1. Hook ile veriyi çek (Polling desteği ile)
+  // Bu hook arka planda 'awaiting_ai_analysis' durumunu kontrol etmeli
   const { application, isLoading, isPolling, error } = useApplicationAnalysisStatus(applicationId);
 
   const { addFavorite, removeFavorite, isFavorite } = useFavoriteCandidatesStore();
 
   // ----------------------------------------------------
-  // 2. YÜKLEME VE HATA DURUMLARI (GELENEKSEL VE POLLED)
+  // 2. FAVORİ İŞLEMLERİ
+  // ----------------------------------------------------
+  const toggleFavorite = () => {
+    if (!application) return;
+
+    if (isFavorite(application._id)) {
+      removeFavorite(application._id);
+    } else {
+      // Mülakat başlığını bulmaya çalışıyoruz, yoksa deneyimden, yoksa fallback
+      let positionTitle = "Pozisyon Belirtilmemiş";
+      
+      if (typeof application.interviewId === 'object' && application.interviewId.title) {
+        positionTitle = application.interviewId.title;
+      } else if (application.experience && application.experience.length > 0) {
+        positionTitle = application.experience[0].position;
+      }
+
+      addFavorite({
+        id: application._id,
+        name: `${application.candidate.name} ${application.candidate.surname}`,
+        position: positionTitle,
+        score: application.generalAIAnalysis?.overallScore || 0,
+      });
+    }
+  };
+
+  // ----------------------------------------------------
+  // 3. DURUM YÖNETİMİ (UI STATE)
   // ----------------------------------------------------
 
+  // A) Yükleniyor
   if (isLoading) {
-    // İlk yükleme (Henüz veri gelmedi)
     return (
-      <div className="flex justify-center items-center min-h-screen bg-background">
-        <Loader2 className="h-8 w-8 animate-spin mr-2" />
-        <span className="text-lg">Başvuru detayları yükleniyor...</span>
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <div className="flex-1 flex flex-col items-center justify-center gap-4">
+          <LoadingSpinner size="lg" />
+          <p className="text-muted-foreground">Aday detayları yükleniyor...</p>
+        </div>
       </div>
     );
   }
 
+  // B) Hata veya Veri Yok
   if (error || !application) {
-    // Veri gelmediyse veya hata varsa
     return (
-      <div className="flex justify-center items-center min-h-screen bg-background text-red-600">
-        Hata: Başvuru bulunamadı veya bir sorun oluştu.
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-destructive">
+          <AlertCircle className="h-12 w-12" />
+          <h2 className="text-xl font-semibold">Başvuru Bulunamadı</h2>
+          <p className="text-muted-foreground">İstediğiniz başvuruya ulaşılamıyor veya yetkiniz yok.</p>
+        </div>
       </div>
     );
   }
   
-  // ----------------------------------------------------
-  // 3. KRİTİK DURUM: AI ANALİZİ BEKLENİYOR (Awaiting Polling)
-  // ----------------------------------------------------
-  if (application.status === 'awaiting_ai_analysis') {
+  // C) AI Analizi Bekleniyor (Polling Ekranı)
+  if (application.status === 'awaiting_ai_analysis' || application.status === 'awaiting_video_responses') {
     return (
-      <div className="min-h-screen bg-background text-foreground">
+      <div className="min-h-screen bg-background flex flex-col">
         <Header />
-        <main className="pt-20">
-          <div className="container mx-auto px-4 py-12 text-center">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto text-blue-500 mb-4" />
-            <h1 className="text-3xl font-bold mb-2">Video Analizi Devam Ediyor</h1>
-            <p className="text-gray-500 mb-4">
-              Adayın video yanıtları şu anda arka planda BullMQ Worker'ları tarafından 
-              harici Yapay Zeka sunucusuna gönderilerek analiz ediliyor.
-            </p>
-            <p className="text-sm text-gray-400">
-              Durum 10 saniyede bir otomatik olarak kontrol ediliyor. Lütfen bekleyin.
-              {isPolling && <span className="ml-2 font-medium text-blue-500">(Kontrol ediliyor...)</span>}
-            </p>
-            {/* Analiz tamamlandığında sayfa otomatik yenilenecektir (React Query sayesinde) */}
+        <main className="flex-1 flex flex-col items-center justify-center p-4 text-center">
+          <div className="max-w-md space-y-6">
+            <div className="relative mx-auto w-16 h-16">
+               <LoadingSpinner size="lg" className="text-primary" />
+            </div>
+            
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold">
+                {application.status === 'awaiting_video_responses' 
+                  ? 'Video Yüklemesi Bekleniyor' 
+                  : 'Yapay Zeka Analizi Yapılıyor'}
+              </h1>
+              <p className="text-muted-foreground">
+                {application.status === 'awaiting_video_responses'
+                  ? 'Aday henüz tüm videolarını yüklemedi.'
+                  : 'Video yanıtları yapay zeka tarafından analiz ediliyor. Bu işlem videonun uzunluğuna göre 1-2 dakika sürebilir.'}
+              </p>
+            </div>
+
+            <div className="bg-muted/50 p-4 rounded-lg text-sm text-muted-foreground">
+              <p>
+                Durum otomatik olarak kontrol ediliyor...
+                {isPolling && <span className="ml-2 font-medium text-primary animate-pulse">(Güncelleniyor)</span>}
+              </p>
+            </div>
           </div>
         </main>
       </div>
     );
   }
 
-  // ----------------------------------------------------
-  // 4. BAŞVURU İNCELENİYOR VEYA ANALİZ TAMAMLANDI (Normal Gösterim)
-  // ----------------------------------------------------
-
- const toggleFavorite = () => {
-    if (application) {
-      if (isFavorite(application.id)) {
-        removeFavorite(application.id);
-      } else {
-        addFavorite({
-          id: application.id,
-          name: application.candidate.name,
-          position: application.experience?.[0]?.position || "Pozisyon Belirtilmemiş",
-          score: application.generalAIAnalysis?.overallScore || 0,
-        });
-      }
-    }
-  };
-
+  // D) Normal Görünüm (Detay Sayfası)
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background pb-12">
       <Header />
-      <main className="pt-20">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold">{application.candidate.name} {application.candidate.surname}</h1>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={toggleFavorite}
-              className={isFavorite(application.id) ? "text-yellow-400" : ""}
-            >
-              <Star className="h-6 w-6" />
-            </Button>
+      
+      <main className="container mx-auto px-4 pt-8">
+        {/* Üst Başlık ve Aksiyonlar */}
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {application.candidate.name} {application.candidate.surname}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {typeof application.interviewId === 'object' ? application.interviewId.title : 'Mülakat Başvurusu'}
+            </p>
           </div>
-          {/* Mock data yerine gerçek application objesini gönderiyoruz */}
-          <CandidateDetailReview application={application} /> 
-          {/* NOT: CandidateDetailReview bileşeninin prop tipi Application tipini kabul edecek şekilde güncellenmelidir. */}
+          
+          <Button
+            variant={isFavorite(application._id) ? "secondary" : "outline"}
+            size="icon"
+            onClick={toggleFavorite}
+            title={isFavorite(application._id) ? "Favorilerden Çıkar" : "Favorilere Ekle"}
+          >
+            <Star 
+              className={`h-5 w-5 ${isFavorite(application._id) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} 
+            />
+          </Button>
         </div>
+
+        {/* Detay Bileşeni */}
+        {/* ÖNEMLİ: Bu bileşen yeni 'Application' tipini kabul etmeli */}
+        <CandidateDetailReview application={application} /> 
       </main>
     </div>
   );
 }
-
