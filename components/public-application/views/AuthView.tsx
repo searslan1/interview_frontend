@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { usePublicApplicationStore } from "@/store/usePublicApplicationStore";
+import { usePublicApplicationStore } from "@/store/usePublicApplicationStore"; // Store import yoluna dikkat edin
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, ArrowLeft, ShieldCheck, Phone } from "lucide-react";
-import { StartApplicationDTO, VerifyOtpDTO } from "@/services/publicApplicationService";
+import { Loader2, ArrowLeft, Phone } from "lucide-react";
+import { StartApplicationDTO } from "@/services/publicApplicationService";
 
 export function AuthView() {
   const { 
@@ -19,7 +19,8 @@ export function AuthView() {
     isLoading, 
     error, 
     setStep,
-    setError 
+    setError,
+    tempApplicationId // ✅ Store'dan geçici ID'yi çekiyoruz
   } = usePublicApplicationStore();
 
   // Local State: Hangi aşamadayız? (form | otp)
@@ -47,38 +48,39 @@ export function AuthView() {
       return;
     }
     
-    // Backend'e istek at (SMS Gönder)
     try {
       await startSession(formData);
-      setAuthStage("otp"); // Başarılıysa OTP ekranına geç
+      setAuthStage("otp"); 
     } catch (err) {
-      // Hata zaten store'da set ediliyor (error state)
+      // Hata store tarafından yönetiliyor
     }
   };
 
-  const handleOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleOtpSubmit = async () => {
     if (otpCode.length < 6) return;
 
-    // Backend'e OTP doğrula -> Token al -> Yönlen
-    // Store içindeki verifySession zaten yönlendirmeyi (setStep) yapıyor.
-    const verifyDto: VerifyOtpDTO = {
-        applicationId: "", // Store'da henüz applicationId yoksa service create response'undan dönmeliydi.
-        // DÜZELTME: createApplication response'unda applicationId dönüyor mu?
-        // Store startSession implementasyonunda response'u state'e kaydetmeliyiz.
-        // Hızlı çözüm: startSession store'da application id'yi temp olarak tutmalı veya return etmeli.
-        // Şu an varsayım: startSession backend çağrısı sonucu store'u güncellemiyor, sadece OTP aşamasına geçiriyor.
-        // Application ID'ye ihtiyacımız var!
-        // ==> Store logic'ini güncellememiz gerekebilir.
-        // GEÇİCİ ÇÖZÜM: StartSession bize ID dönmeli.
-        otpCode: otpCode
-    };
+    // ✅ DÜZELTME BURADA:
+    // Store'daki tempApplicationId'yi kullanıyoruz.
+    // Eğer store'da yoksa (sayfa yenilendiyse vs.) hata gösteriyoruz.
     
-    // Store tarafında bir düzeltme yapmamız gerekebilir (State'de applicationId tutmak için).
-    // Şimdilik varsayım: Store bu logiği hallediyor.
-    // Düzeltme için aşağıda açıklama yapacağım.
+    if (!tempApplicationId) {
+        setError("Oturum süresi dolmuş olabilir. Lütfen sayfayı yenileyip tekrar deneyin.");
+        return;
+    }
     
-    await verifySession({ applicationId: "STORE_SHOULD_HANDLE_THIS", otpCode }); 
+    try {
+        // Store logic'ine göre applicationId opsiyonel olabilir ama 
+        // garanti olması için buradan gönderiyoruz.
+        await verifySession({ 
+            applicationId: tempApplicationId, 
+            otpCode 
+        });
+        
+        // Başarılı olursa Store otomatik olarak setStep yapacak,
+        // burada ekstra bir şey yapmaya gerek yok.
+    } catch (error) {
+        console.error("OTP Error:", error);
+    }
   };
 
   // Render Form
@@ -213,6 +215,9 @@ export function AuthView() {
                     placeholder="000000"
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") handleOtpSubmit();
+                    }}
                 />
             </div>
         </CardContent>
@@ -220,12 +225,7 @@ export function AuthView() {
         <CardFooter className="flex flex-col gap-4">
           <Button 
             className="w-full" 
-            onClick={() => {
-                // Burada bir düzeltme lazım: verifySession applicationId'yi nereden bilecek?
-                // Cevap: Store'da tempId olarak tutulmalı.
-                // Şimdilik placeholder
-                verifySession({ applicationId: "TEMP_ID_FROM_STORE", otpCode });
-            }} 
+            onClick={handleOtpSubmit} // ✅ Artık inline fonksiyon değil, düzeltilmiş handler çağrılıyor
             disabled={isLoading || otpCode.length < 6}
           >
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Doğrula ve Başla"}

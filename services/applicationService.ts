@@ -75,14 +75,14 @@ export const getApplications = async (
  */
 export const getApplicationsByInterviewId = async (
     interviewId: string
-): Promise<Application[]> => {
+): Promise<PaginatedApplicationResponse> => {
     try {
         const response = await getApplications({
             interviewId,
             page: 1,
             limit: 100 // Mülakat başına tüm başvuruları getir
         });
-        return response.data;
+        return response;
     } catch (error) {
         console.error(`Error fetching applications for interview ${interviewId}:`, error);
         throw error;

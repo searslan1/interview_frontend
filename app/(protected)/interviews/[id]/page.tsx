@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 
 interface ApplicationListItem {
     id: string; 
+    interviewId: string;
     candidateName: string;
     email: string;
     status: ApplicationStatus; 
@@ -29,16 +30,21 @@ export default function InterviewDetailPage() {
   const params = useParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id; 
   
+  // Store'lar
   const { selectedInterview, getInterviewById, loading: interviewLoading } = useInterviewStore();
-  const { applications, getApplicationsByInterviewId, loading: appLoading } = useApplicationStore();
+  const { items, getApplicationsByInterviewId, loading: appLoading } = useApplicationStore();
   
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 1️⃣ TÜM HOOK'LAR EN ÜSTTE OLMALI
+  
+  // Verileri Yükle
   useEffect(() => {
     if (!id) return;
 
     const loadData = async () => {
+      console.log("🚀 Mülakat ve Başvurular Yükleniyor... ID:", id);
       setPageLoading(true);
       setError(null); 
       try {
@@ -46,8 +52,9 @@ export default function InterviewDetailPage() {
             getInterviewById(id),
             getApplicationsByInterviewId(id)
         ]);
+        console.log("✅ Veri çekme isteği tamamlandı.");
       } catch (err: any) {
-        console.error(err);
+        console.error("❌ Veri çekme hatası:", err);        
         setError(err.message || "Mülakat bilgileri yüklenirken hata oluştu.");
       } finally {
         setPageLoading(false);
@@ -56,8 +63,17 @@ export default function InterviewDetailPage() {
     loadData();
   }, [id, getInterviewById, getApplicationsByInterviewId]);
 
-  if (pageLoading || interviewLoading) return <LoadingSpinner />;
+  // Debug Log Hook'u (Return'den ÖNCE olmalı)
+  useEffect(() => {
+    console.log("📦 STORE GÜNCELLENDİ - Items:", items);
+  }, [items]);
 
+  // 2️⃣ CONDITIONAL RETURN'LER (HOOK'LARDAN SONRA)
+
+  // Loading Durumu
+  if (pageLoading && !selectedInterview) return <LoadingSpinner />;
+
+  // Hata Durumu
   if (error) {
     return (
         <div className="container mx-auto p-4">
@@ -74,27 +90,26 @@ export default function InterviewDetailPage() {
     return <div className="container mx-auto p-4 text-gray-500">Mülakat bulunamadı.</div>;
   }
 
-  // Veri Dönüşümü
-  const applicationsWithDetails: ApplicationListItem[] = applications.map((app) => ({
-    id: app.id,
+  // 3️⃣ MAPPING VE RENDER
+  const applicationsWithDetails: ApplicationListItem[] = items.map((app: any) => ({
+    id: app._id || app.id,
+    interviewId: selectedInterview._id || "",
     candidateName: app.candidate ? `${app.candidate.name} ${app.candidate.surname}` : "Bilinmeyen Aday", 
     email: app.candidate?.email || "", 
     status: app.status,
-    submissionDate: app.createdAt ? new Date(app.createdAt).toLocaleDateString() : "-", 
+    submissionDate: app.createdAt ? new Date(app.createdAt).toLocaleDateString("tr-TR") : "-", 
     aiScore: app.generalAIAnalysis?.overallScore ?? 0, 
     interviewTitle: selectedInterview.title, 
   }));
 
  return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
-      
-      {/* 1. HEADER: Başlık ve Durum */}
+    <div className="container mx-auto px-4 py-8 space-y-8 fade-in animate-in">
+      {/* 1. HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-6">
         <div>
             <h1 className="text-3xl font-bold tracking-tight">{selectedInterview.title}</h1>
             <p className="text-muted-foreground mt-1">
-                {selectedInterview.position?.title} 
-                {selectedInterview.position?.department && ` • ${selectedInterview.position.department}`}
+                {selectedInterview?.description?.substring(0, 100)}...
             </p>
         </div>
         <div className="flex items-center gap-3">
@@ -106,40 +121,35 @@ export default function InterviewDetailPage() {
         </div>
       </div>
 
-      {/* 2. ÜST BÖLÜM (GRID): Detaylar ve Kontroller */}
+      {/* 2. BODY */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* SOL: Mülakat Detayları (Geniş) */}
         <div className="lg:col-span-2">
             <InterviewDetails interview={selectedInterview} />
         </div>
-        
-        {/* SAĞ: Yayınlama ve Aksiyonlar (Sidebar) */}
         <div className="space-y-6">
            <InterviewPublishControl interview={selectedInterview} />
-           
-           {/* Hızlı İstatistik Özeti (Opsiyonel ama şık durur) */}
            <div className="bg-muted/30 rounded-lg p-4 border flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm font-medium">
                     <Users className="h-4 w-4 text-muted-foreground" />
                     Toplam Başvuru
                 </div>
-                <span className="text-2xl font-bold">{applications.length}</span>
+                <span className="text-2xl font-bold">{items.length}</span>
            </div>
         </div>
       </div>
 
-      {/* 3. ALT BÖLÜM: Başvuru Listesi (Tam Genişlik) */}
+      {/* 3. TABLE */}
       <div className="pt-4">
         <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold tracking-tight">Başvurular</h2>
         </div>
-        {/* Tablo artık tam genişlikte rahatça yayılabilir */}
         <div className="bg-card rounded-lg border shadow-sm">
-            <ApplicationList applications={applicationsWithDetails as any} />
+            <ApplicationList 
+                applications={applicationsWithDetails} 
+                isLoading={appLoading} 
+            />
         </div>
       </div>
-
     </div>
   );
 }

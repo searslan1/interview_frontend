@@ -261,21 +261,45 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
 
   /**
    * Mülakat ID'sine göre başvuruları getir (Mülakat Detay Sayfası için)
-   * NOT: Bu metot ana pagination state'ini etkilemez
    */
   getApplicationsByInterviewId: async (interviewId: string) => {
     set({ loading: true, error: null });
     try {
-      const applications = await getApplicationsByInterviewId(interviewId);
+      const response: any = await getApplicationsByInterviewId(interviewId);
       
+      console.log("🔍 STORE GELEN HAM VERİ:", response);
+      // ✅ DÜZELTME: response.data diyerek array'e erişiyoruz
+      // Backend yapına göre response.data veya response.data.data olabilir. 
+      // Eğer service response.data dönüyorsa, burada response.data kullanmalısın.
+      // Paylaştığın JSON'a göre array "data" key'inin içinde.
+      let applicationsArray: any[] = [];
+      let metaData: any = {};
+
+      if (Array.isArray(response)) {
+          // 1. Direkt Array geldiyse
+          applicationsArray = response;
+      } else if (response.data && Array.isArray(response.data)) {
+          // 2. { success: true, data: [...] } formatı (Service response.data dönüyorsa)
+          applicationsArray = response.data;
+          metaData = response.meta;
+      } else if (response.data?.data && Array.isArray(response.data.data)) {
+           // 3. Axios Objesi formatı { data: { success: true, data: [...] } }
+           applicationsArray = response.data.data;
+           metaData = response.data.meta;
+      }
+
+      console.log("✅ PARSE EDİLEN LİSTE:", applicationsArray);
+
+
       set({ 
-        items: applications,
-        total: applications.length,
-        hasMore: false, // Tüm başvurular geldi
+        items: applicationsArray,
+        total: metaData?.total || applicationsArray.length,
+        hasMore: false,
         page: 1,
         loading: false,
       });
     } catch (error: any) {
+      console.error("Store Error:", error); // Debug için log ekledik
       set({
         error: error.response?.data?.message || 'Mülakat başvuruları getirilirken hata oluştu.',
         loading: false,

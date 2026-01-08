@@ -120,7 +120,7 @@ export type VideoStatus = 'has_video' | 'no_video';
 export type AIStatus = 'no_analysis' | 'pending' | 'completed';
 
 export interface Application {
-  id: string;
+  id?: string;
   _id: string;
   interviewId: string | { _id: string; title: string };
   candidate: Candidate;

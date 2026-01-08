@@ -1,8 +1,10 @@
 import { forwardRef } from "react";
+import { useRouter } from "next/navigation"; // ✅ Yönlendirme için gerekli
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Application, ApplicationStatus } from "@/types/application"; // Sadece tip çevirileri için gerekli
+import { Loader2, Eye } from "lucide-react";
 
 // ✅ YENİ TİP TANIM: Component'in ihtiyacı olan sadeleştirilmiş alanlar
 // Bu tip, app/[id]/applications/page.tsx içinde tanımladığınız ApplicationListItem ile eşleşmelidir.
@@ -18,13 +20,12 @@ export interface ApplicationListItem {
 }
 
 interface ApplicationListProps {
-  // ✅ DÜZELTME 1: applications prop'unun tipini ApplicationListItem[] olarak güncelliyoruz.
   applications: ApplicationListItem[];
   lastApplicationRef?: (node: HTMLTableRowElement | null) => void;
+  isLoading?: boolean;
   
 }
 
-// 🚀 GÜNCELLEME 1: Yeni durumlar için renkler eklendi
 const statusColors: Record<Application["status"], string> = {
   pending: "bg-yellow-500 text-white",
   in_progress: "bg-blue-500 text-white",
@@ -36,7 +37,24 @@ const statusColors: Record<Application["status"], string> = {
 };
 
 export const ApplicationList = forwardRef<HTMLTableRowElement, ApplicationListProps>(
-  ({ applications, lastApplicationRef }, ref) => {
+  ({ applications, lastApplicationRef, isLoading }, ref) => { // ✅ isLoading burada karşılandı
+    const router = useRouter();
+
+    // 1️⃣ LOADING DURUMU KONTROLÜ
+    if (isLoading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Başvurular</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[300px] flex flex-col items-center justify-center text-muted-foreground">
+                    <Loader2 className="h-8 w-8 animate-spin mb-2 text-primary" />
+                    <p>Başvurular yükleniyor...</p>
+                </CardContent>
+            </Card>
+        );
+    }
+
     return (
       <Card>
         <CardHeader>
@@ -54,6 +72,7 @@ export const ApplicationList = forwardRef<HTMLTableRowElement, ApplicationListPr
                   <TableHead>Durum</TableHead>
                   <TableHead>Başvuru Tarihi</TableHead>
                   <TableHead>AI Skoru</TableHead>
+                  <TableHead className="text-right">İşlem</TableHead> {/* ✅ İşlem kolonu eklendi */}
                 </TableRow>
               </TableHeader>
               <TableBody>

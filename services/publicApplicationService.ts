@@ -1,11 +1,9 @@
 // src/services/publicApplicationService.ts
 
-import api from "@/utils/api"; // Axios instance
-import axios from "axios"; // S3 upload için ham axios (interceptor'sız)
+import axios from "axios";
+import { usePublicApplicationStore } from "@/store/usePublicApplicationStore";
 
 // --- Types ---
-// (İdeal dünyada bunlar types klasöründen gelir ama pratiklik için buraya özetliyorum)
-
 export interface PublicInterviewData {
   interviewId: string;
   title: string;
@@ -13,11 +11,7 @@ export interface PublicInterviewData {
   stages: any[];
   status: string;
   expirationDate?: string;
-  questions: {
-    questionText: string;
-    order: number;
-    duration: number;
-  }[];
+  questions: { questionText: string; order: number; duration: number; }[];
 }
 
 export interface StartApplicationDTO {
@@ -37,142 +31,135 @@ export interface VerifyOtpDTO {
 export interface UpdateProfileDTO {
   education?: any[];
   experience?: any[];
-  skills?: {
-    technical?: string[];
-    personal?: string[];
-    languages?: string[];
-  };
-  documents?: {
-    resume?: string;
-    certificates?: string[];
-    socialMediaLinks?: string[];
-  };
+  skills?: { technical?: string[]; personal?: string[]; languages?: string[]; };
+  documents?: { resume?: string; certificates?: string[]; socialMediaLinks?: string[]; };
 }
 
 export interface VideoResponseSubmission {
   questionId: string;
   videoUrl: string;
   duration: number;
-  textAnswer?: string; // Opsiyonel (transkript vb.)
+  textAnswer?: string;
 }
 
-// --- Service ---
+// ✅ BASE URL: utils/api dosyanızdaki mantığı baz aldık
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5000/api';
 
-/**
- * 1. Mülakat Bilgilerini Getir (Landing)
- */
+// ✅ CANDIDATE API INSTANCE
+// Admin interceptor'larından etkilenmemesi için izole bir instance oluşturuyoruz.
+const candidateApi = axios.create({
+    baseURL: BASE_URL,
+    headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    },
+});
+
+// ✅ REQUEST INTERCEPTOR: Token'ı otomatik ekle
+candidateApi.interceptors.request.use((config) => {
+    const token = usePublicApplicationStore.getState().token;
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+}, (error) => {
+    return Promise.reject(error);
+});
+
+// --- Service Methods ---
+
 export const getInterviewInfo = async (interviewId: string): Promise<PublicInterviewData> => {
-  const response = await api.get(`/public/interview/${interviewId}`);
+  const response = await candidateApi.get(`/public/interview/${interviewId}`);
   return response.data.data;
 };
 
-/**
- * 2. Başvuru Başlat (Auth Adım 1)
- */
 export const startApplication = async (data: StartApplicationDTO) => {
-  const response = await api.post(`/public`, data);
-  return response.data.data; // { applicationId, status, phoneVerified }
+  const response = await candidateApi.post(`/public`, data);
+  return response.data.data;
 };
 
-/**
- * 3. OTP Doğrula (Auth Adım 2) -> Token Döner
- */
 export const verifyOtp = async (data: VerifyOtpDTO) => {
-  const response = await api.post(`/public/verifyOtp`, data);
-  return response.data.data; // { token, application }
+  const response = await candidateApi.post(`/public/verifyOtp`, data);
+  return response.data.data;
 };
 
-/**
- * 3.1 OTP Tekrar Gönder
- */
 export const resendOtp = async (applicationId: string) => {
-  const response = await api.post(`/public/resendOtp`, { applicationId });
+  const response = await candidateApi.post(`/public/resendOtp`, { applicationId });
   return response.data;
 };
 
-/**
- * 4. Mevcut Başvuruyu Getir (F5 Desteği / Resume)
- * Token header'da otomatik gider (api interceptor sayesinde)
- */
 export const getMyApplication = async () => {
-  const response = await api.get(`/public/me`);
+  const response = await candidateApi.get(`/public/me`);
   return response.data.data;
 };
 
-/**
- * 5. Profil Güncelle (Wizard)
- */
 export const updateProfile = async (data: UpdateProfileDTO) => {
-  const response = await api.put(`/public/update`, data);
+  const response = await candidateApi.put(`/public/update`, data);
   return response.data.data;
 };
 
 /**
- * 6. Dosya Yükleme Helper'ı (CV, Sertifika)
- * Önce Backend'den URL alır, sonra S3'e yükler.
+ * 6. Dosya Yükleme (GÜNCELLENDİ: Mock Bypass Eklendi)
  */
 export const uploadFile = async (
   file: File, 
   type: 'cv' | 'certificate' | 'video'
 ): Promise<{ fileKey: string; url: string }> => {
   
-  // A. Backend'den Upload URL al
-  // type mapping: cv -> application/pdf, video -> video/webm vb.
   let mimeType = file.type;
   if (!mimeType) {
       if (type === 'cv') mimeType = 'application/pdf';
       else if (type === 'video') mimeType = 'video/webm';
   }
 
-  // Endpoint seçimi (Video için ayrı, döküman için ayrı endpoint yapmıştık ama mantık aynı)
-  // Backend'de: getUploadUrl ve getVideoUploadUrl var.
-  // Video için getVideoUploadUrl, diğerleri için getUploadUrl kullanalım.
-  
-  let endpoint = '/public/upload-url';
-  let params: any = { fileType: mimeType, fileName: file.name };
-
-  // Video özel durumu (QuestionId gerekebilir ama generic upload için gerekmiyor şu an)
-  // Backend getVideoUploadUrl questionId istiyor. Eğer sınav anındaysak onu kullanırız.
-  // Bu fonksiyon genel dosya yükleme için.
-  
-  const presignResponse = await api.get(endpoint, { params });
+  // 1. Upload URL Al (candidateApi kullanır, Token gider)
+  const params = { fileType: mimeType, fileName: file.name };
+  const presignResponse = await candidateApi.get(`/public/upload-url`, { params });
   const { uploadUrl, fileKey } = presignResponse.data.data;
 
-  // B. Dosyayı S3'e (veya Mock URL'e) yükle
-  // NOT: Burada 'api' instance'ı yerine ham 'axios' kullanıyoruz çünkü
-  // Authorization header'ı S3 isteğine gitmemeli (CORS hatası verir).
+  // 🚨 MOCK BYPASS (GELİŞTİRME ORTAMI İÇİN)
+  // Eğer Backend mock URL dönüyorsa, gerçek upload işlemini atla.
+  if (uploadUrl.includes("mock-s3-upload-url")) {
+      console.warn("⚠️ MOCK URL Tespit Edildi: Gerçek dosya yükleme işlemi atlanıyor.");
+      
+      // Gerçekçilik için 1 saniye bekle
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return { fileKey, url: uploadUrl };
+  }
+
+  // 2. Dosyayı S3'e yükle (Saf axios kullanır, Token GİTMEZ)
+  // Sadece gerçek bir URL varsa burası çalışır
   await axios.put(uploadUrl, file, {
-    headers: {
-      'Content-Type': mimeType,
-    },
+      headers: { 'Content-Type': mimeType },
   });
 
-  return { fileKey, url: uploadUrl.split('?')[0] }; // Query params'sız temiz URL (opsiyonel)
+  return { fileKey, url: uploadUrl.split('?')[0] }; 
 };
 
 /**
- * 7. Video Upload URL Al (Sınav İçin Özel)
+ * 7. Video Upload URL Al (Header Manuel Zorlama)
  */
 export const getVideoUploadUrl = async (questionId: string, contentType: string) => {
-    const response = await api.get('/public/video/upload-url', {
-        params: { questionId, contentType }
+    const token = usePublicApplicationStore.getState().token;
+    
+    // Video upload linki için de aynısını yapıyoruz
+    const response = await candidateApi.get(`/public/video/upload-url`, {
+        params: { questionId, contentType },
+        headers: {
+            Authorization: `Bearer ${token}` // 👈 KESİN ÇÖZÜM
+        }
     });
-    return response.data.data; // { uploadUrl, videoKey }
+    return response.data.data; 
 };
 
-/**
- * 8. Video Yanıtını Kaydet (Backend'e Bildir)
- */
 export const submitVideoResponse = async (data: VideoResponseSubmission) => {
-  const response = await api.post(`/public/video/response`, data);
+  const response = await candidateApi.post(`/public/video/response`, data);
   return response.data.data;
 };
 
-/**
- * 9. Kişilik Testi Yanıtı
- */
 export const submitPersonalityTest = async (testId: string, answers: any) => {
-    const response = await api.post(`/public/personality-test/response`, { testId, answers });
+    const response = await candidateApi.post(`/public/personality-test/response`, { testId, answers });
     return response.data.data;
 }
 
