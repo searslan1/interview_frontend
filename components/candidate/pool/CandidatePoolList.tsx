@@ -20,13 +20,22 @@ import {
 import type { Candidate, CandidateStatus } from "@/types/candidate";
 
 interface CandidatePoolListProps {
-  onSelectCandidate: (candidate: Candidate) => void;
+  candidates?: Candidate[]; // Optional because data comes from store mostly
+  isLoading?: boolean;      // Loading prop passed from page
+  onSelectCandidate: (candidateId: string) => void; // Changed to accept ID
+  onToggleFavorite?: (candidateId: string, currentStatus: boolean) => void; // Added for page control
 }
 
-export function CandidatePoolList({ onSelectCandidate }: CandidatePoolListProps) {
+export function CandidatePoolList({ 
+  candidates: propCandidates,
+  isLoading: propIsLoading,
+  onSelectCandidate,
+  onToggleFavorite
+}: CandidatePoolListProps) {
+  // Store'dan verileri çekiyoruz (prop olarak gelmediyse fallback)
   const {
-    candidates,
-    isLoading,
+    candidates: storeCandidates,
+    isLoading: storeIsLoading,
     error,
     pagination,
     fetchCandidates,
@@ -34,30 +43,18 @@ export function CandidatePoolList({ onSelectCandidate }: CandidatePoolListProps)
     updateStatus,
   } = useCandidateStore();
 
-  const { addFavorite, removeFavorite, isFavorite } = useFavoriteCandidatesStore();
+  const { isFavorite } = useFavoriteCandidatesStore();
 
-  // İlk yüklemede adayları getir
+  // Props varsa onları, yoksa store verilerini kullan
+  const candidates = propCandidates || storeCandidates;
+  const isLoading = propIsLoading !== undefined ? propIsLoading : storeIsLoading;
+
+  // İlk yüklemede adayları getir (Eğer store verisi kullanılıyorsa)
   useEffect(() => {
-    fetchCandidates();
-  }, [fetchCandidates]);
-
-  // Favori toggle handler
-  const handleFavoriteToggle = useCallback((candidateId: string) => {
-    const candidate = candidates.find(c => c._id === candidateId);
-    if (!candidate) return;
-
-    if (isFavorite(candidateId)) {
-      removeFavorite(candidateId);
-    } else {
-      // ✅ DÜZELTME: Backend verisine uygun map'leme yapıldı
-      addFavorite({
-        id: candidate._id,
-        name: `${candidate.name} ${candidate.surname}`,
-        position: candidate.lastInterviewTitle || "Pozisyon Belirtilmemiş",
-        score: candidate.scoreSummary?.avgOverallScore || 0,
-      });
+    if (!propCandidates && candidates.length === 0) {
+        fetchCandidates();
     }
-  }, [candidates, isFavorite, removeFavorite, addFavorite]);
+  }, [fetchCandidates, propCandidates, candidates.length]);
 
   // Durum değiştirme handler
   const handleStatusChange = useCallback(async (candidateId: string, status: CandidateStatus) => {
@@ -67,9 +64,6 @@ export function CandidatePoolList({ onSelectCandidate }: CandidatePoolListProps)
   // Sayfa değiştirme
   const handlePageChange = (page: number) => {
     setPage(page);
-    // fetchCandidates store içindeki setPage tarafından tetikleniyor olabilir, 
-    // ama garanti olsun diye burada çağırmak da bir yöntemdir. 
-    // Store implementation'a göre setPage zaten fetch yapıyorsa burası sadeleşebilir.
   };
 
   // 1. Loading State
@@ -129,7 +123,7 @@ export function CandidatePoolList({ onSelectCandidate }: CandidatePoolListProps)
         <AnimatePresence mode="popLayout" initial={false}>
           {candidates.map((candidate, index) => (
             <motion.div
-              key={candidate._id}
+              key={candidate._id || candidate.id} // ID fallback
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.98 }}
@@ -137,9 +131,13 @@ export function CandidatePoolList({ onSelectCandidate }: CandidatePoolListProps)
             >
               <CandidateRow
                 candidate={candidate}
-                onSelect={onSelectCandidate}
-                onFavoriteToggle={handleFavoriteToggle}
-                isFavorite={isFavorite(candidate._id)}
+                onSelect={() => onSelectCandidate(candidate.id || candidate._id)} // Pass ID
+                onFavoriteToggle={(id) => {
+                    if (onToggleFavorite) {
+                        onToggleFavorite(id, isFavorite(id));
+                    }
+                }}
+                isFavorite={isFavorite(candidate._id || candidate.id!)}
                 onStatusChange={handleStatusChange}
               />
             </motion.div>
@@ -147,8 +145,8 @@ export function CandidatePoolList({ onSelectCandidate }: CandidatePoolListProps)
         </AnimatePresence>
       </div>
 
-      {/* Pagination Controls */}
-      {pagination.totalPages > 1 && (
+      {/* Pagination Controls - Sadece store kullanılıyorsa göster */}
+      {!propCandidates && pagination.totalPages > 1 && (
         <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t gap-4">
           <p className="text-sm text-muted-foreground order-2 sm:order-1">
             Sayfa <strong>{pagination.currentPage}</strong> / {pagination.totalPages}

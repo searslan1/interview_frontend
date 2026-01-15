@@ -75,14 +75,45 @@ export interface CandidateInterviewHistoryItem {
         communicationScore?: number;
     };
 }
+// ==========================================
+// RESUME DATA (CV) - YENİ EKLENDİ
+// ==========================================
 
+export interface CandidateExperience {
+  _id?: string; // Backend bazen sub-document ID dönebilir
+  company: string;
+  position: string; // veya 'title'
+  startDate: string | Date;
+  endDate?: string | Date;
+  isCurrent: boolean;
+  description?: string;
+}
+
+export interface CandidateEducation {
+  _id?: string;
+  school: string;
+  department: string;
+  degree?: string; // Lisans, Yüksek Lisans vb.
+  startDate: string | Date;
+  endDate?: string | Date;
+  isCurrent: boolean;
+}
+
+export interface CandidateSkill {
+  name: string;
+  level?: number; // 1-10 veya 1-5
+}
+
+// ==========================================
+// MAIN MODELS (GÜNCEL)
+// ==========================================
 // ==========================================
 // MAIN MODELS
 // ==========================================
 
 export interface Candidate {
   _id: string;
-  
+  id?: string;
   name: string;
   surname: string;
   fullName: string;
@@ -96,6 +127,11 @@ export interface Candidate {
   
   scoreSummary: CandidateScoreSummary;
   
+// ✅ YENİ: CV Verileri (En son başvurudan alınır)
+  experience: CandidateExperience[];
+  education: CandidateEducation[];
+  skills: string[] | CandidateSkill[]; // Basit string array veya obje olabilir
+
   lastInterviewDate?: string;
   firstInterviewDate?: string;
   lastInterviewTitle?: string;

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useCandidateStore } from "@/store/candidateStore";
-import { useFavoriteCandidatesStore } from "@/store/favorite-candidates-store";
 import { Header } from "@/components/Header";
 import { 
   CandidateFilterBar, 
@@ -12,64 +11,61 @@ import {
 } from "@/components/candidate/pool";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Star, RefreshCw } from "lucide-react";
-import type { Candidate } from "@/types/candidate";
+import { Users, Star, RefreshCw, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 
 export default function CandidatesPage() {
+  // ✅ Store'dan gerekli tüm verileri ve aksiyonları çekiyoruz
   const {
-    candidates, // ✅ DÜZELTİLDİ: Store'da 'items' yok, 'candidates' var
+    candidates, 
+    selectedCandidate, // Detay verisi (CV dahil)
     pagination,
-    isLoading,
+    isLoading,         // Liste yükleniyor mu?
+    isLoadingDetail,   // Detay yükleniyor mu?
+    error,
     fetchCandidates,
+    fetchCandidateById,
     fetchAvailablePositions,
+    addToFavorites,
+    removeFromFavorites,
+    clearSelectedCandidate
   } = useCandidateStore();
 
-  const { favorites, addFavorite, removeFavorite, isFavorite } = useFavoriteCandidatesStore();
-
-  // Seçili aday (detay paneli için)
-  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  // Panel kontrolü (UI State)
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  // İlk yükleme
+  // 1. İlk Yükleme
   useEffect(() => {
     fetchCandidates();
     fetchAvailablePositions();
   }, [fetchCandidates, fetchAvailablePositions]);
 
-  // Aday seçimi handler
-  const handleSelectCandidate = useCallback((candidate: Candidate) => {
-    setSelectedCandidate(candidate);
+  // 2. Aday Seçimi Handler (Full Detay Çekme)
+  const handleSelectCandidate = useCallback(async (candidateId: string) => {
     setIsDetailOpen(true);
-  }, []);
+    // Backend'den full detay (CV, Eğitim vb.) çekilir
+    await fetchCandidateById(candidateId);
+  }, [fetchCandidateById]);
 
-  // Detay paneli kapat
+  // 3. Detay Paneli Kapatma
   const handleCloseDetail = useCallback(() => {
     setIsDetailOpen(false);
-    setTimeout(() => setSelectedCandidate(null), 300);
-  }, []);
+    // Panel kapandıktan kısa süre sonra store'daki seçimi temizle (Animasyon için bekle)
+    setTimeout(() => {
+        clearSelectedCandidate();
+    }, 300);
+  }, [clearSelectedCandidate]);
 
-  // Favori toggle handler
-  const handleFavoriteToggle = useCallback((candidateId: string) => {
-    if (isFavorite(candidateId)) {
-      removeFavorite(candidateId);
+  // 4. Favori Toggle Handler (Backend Entegreli)
+  const handleFavoriteToggle = useCallback(async (candidateId: string, currentStatus: boolean) => {
+    if (currentStatus) {
+      await removeFromFavorites(candidateId);
     } else {
-      const candidate = candidates.find(c => c._id === candidateId);
-      if (candidate) {
-        addFavorite({
-          id: candidate._id,
-          name: `${candidate.name} ${candidate.surname}`,
-          position: candidate.lastInterviewTitle || "Pozisyon Belirtilmemiş",
-          score: candidate.scoreSummary?.avgOverallScore || 0,
-        });
-      }
+      await addToFavorites(candidateId);
     }
-  }, [isFavorite, removeFavorite, addFavorite, candidates]);
-
-  // ✅ DÜZELTİLDİ: Pagination objesindeki doğru key kullanıldı
-  const stats = {
-    total: pagination.total, // 'totalItems' veya 'total'
-    favorites: favorites.length,
-  };
+    // Listeyi yenilemeye gerek yok, Store optimistic update yapıyor
+  }, [addToFavorites, removeFromFavorites]);
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-12">
@@ -81,32 +77,43 @@ export default function CandidatesPage() {
           transition={{ duration: 0.5 }}
           className="space-y-6"
         >
-          {/* Header */}
+          {/* Header Section */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Aday Havuzu (Talent Pool)</h1>
               <p className="text-muted-foreground mt-1">
-                Tüm adayları tek bir merkezden yönetin, geçmiş verilerini inceleyin.
+                Tüm adayları tek bir merkezden yönetin, AI analizlerini ve geçmiş verilerini inceleyin.
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchCandidates(1)} // Reset to page 1
-              disabled={isLoading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-              Listeyi Yenile
-            </Button>
+            <div className="flex items-center gap-2">
+                <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchCandidates(1)}
+                disabled={isLoading}
+                >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+                Yenile
+                </Button>
+            </div>
           </div>
 
+          {/* Hata Bildirimi */}
+          {error && (
+            <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Hata</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           {/* İstatistik Kartları */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-3xl font-bold">{stats.total}</p>
+                    <p className="text-3xl font-bold">{pagination.total}</p>
                     <p className="text-sm text-muted-foreground">Toplam Aday</p>
                   </div>
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -115,43 +122,42 @@ export default function CandidatesPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-3xl font-bold">{stats.favorites}</p>
-                    <p className="text-sm text-muted-foreground">Favorilerim</p>
-                  </div>
-                   <div className="h-12 w-12 rounded-full bg-yellow-400/10 flex items-center justify-center">
-                    <Star className="h-6 w-6 text-yellow-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Buraya "Aktif Süreç", "Teklif Bekleyen" gibi diğer istatistikler eklenebilir */}
           </div>
 
           {/* Filtre Bar */}
           <div className="space-y-4">
-             {/* Filter Bar componenti store'a bağlı olmalı */}
+             {/* Store'a bağlı filtre bileşeni */}
              <CandidateFilterBar />
           </div>
 
           {/* Aday Listesi */}
-          <Card>
-            <CardHeader className="px-6 py-4 border-b">
-              <div className="flex items-center justify-between">
-                 <div>
+          <Card className="min-h-[500px]">
+            <CardHeader className="px-6 py-4 border-b flex flex-row items-center justify-between">
+                <div>
                     <CardTitle>Aday Listesi</CardTitle>
                     <CardDescription>
-                        Arama kriterlerinize uygun adaylar listeleniyor
+                        {pagination.total > 0 
+                            ? `${pagination.total} aday arasından listeleniyor`
+                            : "Kriterlere uygun aday bulunamadı"}
                     </CardDescription>
-                 </div>
-                 {/* Pagination özeti opsiyonel eklenebilir: 1-20 / 150 */}
-              </div>
+                </div>
+                {/* Pagination Özeti */}
+                <div className="text-sm text-muted-foreground">
+                    Sayfa {pagination.page} / {pagination.totalPages || 1}
+                </div>
             </CardHeader>
             <CardContent className="p-0">
-               {/* Liste bileşeni store'a bağlı çalışır veya props alır */}
-              <CandidatePoolList onSelectCandidate={handleSelectCandidate} />
+               {/* ✅ Liste Bileşeni: 
+                  - Store'daki candidates verisini kullanacak (veya props ile alacak)
+                  - ID tıklanınca handleSelectCandidate(id) çağıracak
+               */}
+              <CandidatePoolList 
+                candidates={candidates}
+                isLoading={isLoading}
+                onSelectCandidate={handleSelectCandidate} 
+                onToggleFavorite={handleFavoriteToggle}
+              />
             </CardContent>
           </Card>
         </motion.div>
@@ -159,11 +165,15 @@ export default function CandidatesPage() {
 
       {/* Aday Detay Paneli (Side Drawer) */}
       <CandidateDetailPanel
-        candidate={selectedCandidate}
+        candidate={selectedCandidate} // Store'dan gelen FULL detaylı aday
         isOpen={isDetailOpen}
+        isLoading={isLoadingDetail}   // Yükleniyor durumu
         onClose={handleCloseDetail}
-        isFavorite={selectedCandidate ? isFavorite(selectedCandidate._id) : false}
-        onFavoriteToggle={handleFavoriteToggle}
+        onFavoriteToggle={() => {
+            if (selectedCandidate) {
+                handleFavoriteToggle(selectedCandidate.id || selectedCandidate._id, selectedCandidate.isFavorite);
+            }
+        }}
       />
     </div>
   );

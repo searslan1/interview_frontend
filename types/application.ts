@@ -66,6 +66,10 @@ export interface ApplicationResponse {
   videoUrl?: string; // S3/Cloudfront linki
   textAnswer?: string; 
   duration?: number;
+  // AI Süreç takibi (Soru bazlı)
+  aiStatus: 'idle' | 'processing' | 'completed' | 'failed';
+  aiScore?: number;
+  aiDetails?: AIAnalysisDetailed; // Mapper'dan gelen rafine veri buraya oturacak
 }
 
 export interface PersonalityTestScores {
@@ -150,7 +154,38 @@ export interface Application {
   createdAt: string;
   updatedAt: string;
 }
-
+export interface AIAnalysisDetailed {
+  overallScore: number;
+  isReliable: boolean;
+  warnings: string[];
+  breakdown: {
+    face: number;
+    voice: number;
+    llm: number;
+  };
+  // Mapper'dan gelen Dashboard verileri
+  radarData: Array<{ subject: string; A: number; fullMark: number }>;
+  // Ses ve Görüntü detayları
+  faceDetails?: any; // FaceScoreService çıktıları
+  voiceDetails?: any; // VoiceScoreService çıktıları
+  // LLM Yorumları
+  commentary?: {
+    overallAssessment: string;
+    recommendation: string;
+  };
+  // Kelime bazlı duygu ve vurgu analizi
+  transcription?: {
+    text: string;
+    enrichedWords?: Array<{
+      word: string;
+      start: number;
+      end: number;
+      dominantEmotion: string;
+      emotionEntropy: number;
+      highlightForReview: boolean;
+    }>;
+  };
+}
 // ========================================
 // LEGACY TYPES (Geriye Dönük Uyumluluk)
 // ========================================

@@ -61,7 +61,9 @@ interface CandidateStoreActions {
   
   // Merge
   mergeCandidates: (primaryId: string, secondaryId: string) => Promise<void>;
-  
+
+  addToFavorites: (candidateId: string) => Promise<void>;
+  removeFromFavorites: (candidateId: string) => Promise<void>;
   // Helpers
   clearSelectedCandidate: () => void;
   fetchAvailablePositions: () => Promise<void>;
@@ -255,7 +257,55 @@ export const useCandidateStore = create<CandidateStoreState & CandidateStoreActi
     clearSelectedCandidate: () => {
       set({ selectedCandidate: null });
     },
+// ========== ✅ EKLENEN FAVORİ METODLARI ==========
 
+    addToFavorites: async (candidateId: string) => {
+        try {
+            // Optimistic Update: Hemen favori yap
+            set((state) => ({
+                candidates: state.candidates.map(c => 
+                    (c.id === candidateId || c._id === candidateId) ? { ...c, isFavorite: true } : c
+                ),
+                selectedCandidate: (state.selectedCandidate?.id === candidateId || state.selectedCandidate?._id === candidateId)
+                    ? { ...state.selectedCandidate, isFavorite: true }
+                    : state.selectedCandidate
+            }));
+
+            await candidateService.addToFavorites(candidateId);
+        } catch (error) {
+            // Hata olursa geri al (Rollback)
+            set((state) => ({
+                candidates: state.candidates.map(c => 
+                    (c.id === candidateId || c._id === candidateId) ? { ...c, isFavorite: false } : c
+                ),
+                error: "Favorilere eklenemedi"
+            }));
+        }
+    },
+
+    removeFromFavorites: async (candidateId: string) => {
+        try {
+            // Optimistic Update
+            set((state) => ({
+                candidates: state.candidates.map(c => 
+                    (c.id === candidateId || c._id === candidateId) ? { ...c, isFavorite: false } : c
+                ),
+                selectedCandidate: (state.selectedCandidate?.id === candidateId || state.selectedCandidate?._id === candidateId)
+                    ? { ...state.selectedCandidate, isFavorite: false }
+                    : state.selectedCandidate
+            }));
+
+            await candidateService.removeFromFavorites(candidateId);
+        } catch (error) {
+            // Rollback
+            set((state) => ({
+                candidates: state.candidates.map(c => 
+                    (c.id === candidateId || c._id === candidateId) ? { ...c, isFavorite: true } : c
+                ),
+                error: "Favorilerden çıkarılamadı"
+            }));
+        }
+    },
     fetchAvailablePositions: async () => {
       try {
         // Tip uyuşmazlığını düzeltiyoruz (API dönüş tipini store tipine map'le)
