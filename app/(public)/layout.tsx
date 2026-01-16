@@ -1,9 +1,8 @@
 "use client";
 
-import "../globals.css";
 import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Toaster } from "@/components/ui/toaster"; // Bildirimler için (Hata/Başarı)
+// Toaster root layout'ta zaten var, burada tekrar eklemeye gerek yok
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -25,9 +24,6 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
         <main className="w-full h-full">
           {children}
         </main>
-        
-        {/* Global Toast Bildirimleri (Hata mesajları için kritik) */}
-        <Toaster />
       </div>
     );
   }
@@ -40,7 +36,6 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
       <div className="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
         {children}
       </div>
-      <Toaster />
     </main>
   );
 }

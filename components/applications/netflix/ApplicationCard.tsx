@@ -52,6 +52,12 @@ const statusConfig: Record<ApplicationStatus, {
     icon: <Clock className="h-3 w-3" />, 
     label: "Beklemede" 
   },
+  otp_verified: { 
+    color: "text-cyan-500", 
+    bgColor: "bg-cyan-500/10", 
+    icon: <CheckCircle2 className="h-3 w-3" />, 
+    label: "OTP Doğrulandı" 
+  },
   in_progress: { 
     color: "text-blue-500", 
     bgColor: "bg-blue-500/10", 
@@ -181,19 +187,21 @@ export function ApplicationCard({
 
             {/* Favori Butonu (Sol Üst) */}
             {onFavoriteToggle && (
-              <button
+              <Button
                 onClick={(e) => {
                   e.stopPropagation();
                   onFavoriteToggle(application);
                 }}
-                className="absolute top-3 left-3 p-1.5 rounded-full bg-background/80 backdrop-blur-sm 
+                variant="ghost"
+                size="icon"
+                className="absolute top-3 left-3 h-7 w-7 rounded-full bg-background/80 backdrop-blur-sm 
                            border border-border hover:bg-background transition-colors"
               >
                 <Star className={cn(
                   "h-4 w-4 transition-colors",
                   isFavorite ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"
                 )} />
-              </button>
+              </Button>
             )}
 
             {/* Video Badge */}
@@ -261,7 +269,7 @@ export function ApplicationCard({
             {/* Mülakat Başlığı (Opsiyonel) */}
             {showInterviewTitle && application.interviewId && (
               <p className="text-xs text-muted-foreground line-clamp-1">
-                Mülakat: {application.interviewId}
+                Mülakat: {typeof application.interviewId === "object" && application.interviewId !== null ? application.interviewId.title : application.interviewId}
               </p>
             )}
 

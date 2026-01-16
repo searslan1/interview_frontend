@@ -3,7 +3,6 @@
 import { useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCandidateStore } from "@/store/candidateStore";
-import { useFavoriteCandidatesStore } from "@/store/favorite-candidates-store";
 import { CandidateRow } from "./CandidateRow";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,8 +41,6 @@ export function CandidatePoolList({
     setPage,
     updateStatus,
   } = useCandidateStore();
-
-  const { isFavorite } = useFavoriteCandidatesStore();
 
   // Props varsa onları, yoksa store verilerini kullan
   const candidates = propCandidates || storeCandidates;
@@ -134,10 +131,11 @@ export function CandidatePoolList({
                 onSelect={() => onSelectCandidate(candidate.id || candidate._id)} // Pass ID
                 onFavoriteToggle={(id) => {
                     if (onToggleFavorite) {
-                        onToggleFavorite(id, isFavorite(id));
+                        // ✅ Candidate objesinden isFavorite değerini kullan (backend'den geliyor)
+                        onToggleFavorite(id, candidate.isFavorite ?? false);
                     }
                 }}
-                isFavorite={isFavorite(candidate._id || candidate.id!)}
+                isFavorite={candidate.isFavorite ?? false} // ✅ Backend'den gelen değer
                 onStatusChange={handleStatusChange}
               />
             </motion.div>

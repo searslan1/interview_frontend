@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Star, Link, FileText } from "lucide-react";
-import { useFavoriteCandidatesStore } from "@/store/favorite-candidates-store";
+import { useCandidateStore } from "@/store/candidateStore";
 import type { Candidate } from "@/types/candidate";
 
 interface CandidateCardProps {
@@ -13,18 +13,15 @@ interface CandidateCardProps {
 }
 
 export function CandidateCard({ candidate }: CandidateCardProps) {
-  const { addFavorite, removeFavorite, isFavorite } = useFavoriteCandidatesStore();
+  const { addToFavorites, removeFromFavorites } = useCandidateStore();
 
+  // ✅ Backend entegreli favori toggle
   const toggleFavorite = () => {
-    if (isFavorite(candidate.id)) {
-      removeFavorite(candidate.id);
+    const candidateId = candidate.id || candidate._id;
+    if (candidate.isFavorite) {
+      removeFromFavorites(candidateId);
     } else {
-      addFavorite({
-        id: candidate.id,
-        name: candidate.name,
-        position: candidate.appliedPosition,
-        score: candidate.interviews.length > 0 ? candidate.interviews[0].score : 0, // En son mülakat skoru
-      });
+      addToFavorites(candidateId);
     }
   };
 
@@ -98,9 +95,11 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
           </div>
 
           <div className="flex items-center justify-between mt-2">
-            <span className="text-sm font-semibold">AI Skoru: {candidate.interviews.length > 0 ? candidate.interviews[0].score : "N/A"}</span>
+            <span className="text-sm font-semibold">
+              AI Skoru: {candidate.scoreSummary?.avgOverallScore ?? "N/A"}
+            </span>
             <Button variant="ghost" size="sm" onClick={toggleFavorite}>
-              <Star className={`h-4 w-4 ${isFavorite(candidate.id) ? "fill-yellow-400" : ""}`} />
+              <Star className={`h-4 w-4 ${candidate.isFavorite ? "fill-yellow-400 text-yellow-400" : ""}`} />
             </Button>
           </div>
         </div>

@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import type { Application } from "@/types/application";
 import useApplicationStore from "../../store/applicationStore"; // Güvenilirlik için göreceli yol
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 interface CandidateDetailCardProps {
   application: Application;
@@ -30,7 +30,7 @@ export function CandidateDetailCard({ application, onClose }: CandidateDetailCar
         
         toast({
             title: "Durum Güncellendi",
-            description: `Başvuru durumu başarıyla "${formatStatus(newStatus)}" olarak ayarlandı.`,
+            description: `Başvuru durumu başarıyla "${ (newStatus)}" olarak ayarlandı.`,
         });
     } catch (error) {
         toast({
@@ -61,9 +61,7 @@ export function CandidateDetailCard({ application, onClose }: CandidateDetailCar
           <p>
             <strong>Başvuru Tarihi:</strong> {formatDate(application.createdAt)}
           </p>
-          <Badge className={getStatusBadge(application.status)}>
-            {formatStatus(application.status)}
-          </Badge>
+          <StatusBadge status={application.status} className="mt-2" />
         </div>
 
         {/* Video Mülakat */}
@@ -165,34 +163,6 @@ export function CandidateDetailCard({ application, onClose }: CandidateDetailCar
       </CardContent>
     </Card>
   );
-}
-
-// Durum renkleri (Backend'deki yeni durumlar dahil edildi)
-function getStatusBadge(status: Application["status"]) {
-  const statusClasses: Record<Application["status"], string> = {
-    accepted: "bg-green-600 text-white hover:bg-green-700",
-    rejected: "bg-red-600 text-white hover:bg-red-700",
-    pending: "bg-yellow-500 text-gray-800 hover:bg-yellow-600",
-    in_progress: "bg-blue-500 text-white hover:bg-blue-600",
-    completed: "bg-gray-700 text-white hover:bg-gray-800",
-    awaiting_ai_analysis: "bg-purple-600 text-white", 
-    awaiting_video_responses: "bg-indigo-500 text-white", 
-  };
-  return statusClasses[status] || "bg-gray-500 text-white";
-}
-
-// Status için Türkçe dönüşüm
-function formatStatus(status: Application["status"]) {
-  const statusMap: Record<Application["status"], string> = {
-    pending: "İK İncelemesi Bekleniyor",
-    in_progress: "Detaylar Tamamlandı",
-    completed: "Karar Bekleniyor",
-    rejected: "Reddedildi",
-    accepted: "Kabul Edildi",
-    awaiting_ai_analysis: "AI Analizi Yapılıyor",
-    awaiting_video_responses: "Video Yanıtları Bekleniyor",
-  };
-  return statusMap[status] || status;
 }
 
 // Tarih formatını düzenleme fonksiyonu

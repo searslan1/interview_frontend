@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useCandidateStore } from "@/store/candidateStore";
-import { Header } from "@/components/Header";
 import { 
   CandidateFilterBar, 
   CandidatePoolList, 
@@ -69,7 +68,6 @@ export default function CandidatesPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-12">
-      <Header />
       <main className="container mx-auto px-4 pt-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

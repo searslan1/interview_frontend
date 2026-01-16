@@ -1,0 +1,21 @@
+{
+  "name": "HireAI - Akıllı Mülakat Platformu",
+  "short_name": "HireAI",
+  "description": "Yapay zeka destekli video mülakat ve aday değerlendirme platformu",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/placeholder-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "tr",
+  "dir": "ltr"
+}

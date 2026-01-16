@@ -105,13 +105,13 @@ export const getApplicationById = async (id: string): Promise<Application> => {
 };
 
 /**
- * ✅ YENİ METOT: Başvurunun durumunu günceller (Kabul/Red/Beklemede).
+ * ✅ YENİ METOT: Başvurunun durumunu günceller (Kabul/Red/Beklemede/Arşiv).
  * @param id Başvurunun ID'si
- * @param newStatus Yeni durum ('pending', 'rejected', 'accepted')
+ * @param newStatus Yeni durum ('pending', 'rejected', 'accepted', 'completed', 'archived')
  */
 export const updateApplicationStatus = async (
     id: string,
-    newStatus: 'pending' | 'rejected' | 'accepted'
+    newStatus: 'pending' | 'rejected' | 'accepted' | 'completed' | 'archived'
 ): Promise<Application> => {
     try {
         const response = await api.patch<{ success: boolean; data: Application }>(
@@ -122,6 +122,106 @@ export const updateApplicationStatus = async (
         return response.data.data;
     } catch (error) {
         console.error(`Error updating application status for ${id}:`, error);
+        throw error;
+    }
+};
+
+/**
+ * ✅ YENİ METOT: HR Notu Ekle
+ * POST /applications/:id/notes
+ */
+export const addHRNote = async (
+    applicationId: string,
+    content: string,
+    isPrivate: boolean = false
+): Promise<Application> => {
+    try {
+        const response = await api.post<{ success: boolean; data: Application }>(
+            `/applications/${applicationId}/notes`,
+            { content, isPrivate }
+        );
+        return response.data.data;
+    } catch (error) {
+        console.error(`Error adding HR note for ${applicationId}:`, error);
+        throw error;
+    }
+};
+
+/**
+ * ✅ YENİ METOT: HR Notu Güncelle
+ * PATCH /applications/:id/notes/:noteId
+ */
+export const updateHRNote = async (
+    applicationId: string,
+    noteId: string,
+    updates: { content?: string; isPrivate?: boolean }
+): Promise<Application> => {
+    try {
+        const response = await api.patch<{ success: boolean; data: Application }>(
+            `/applications/${applicationId}/notes/${noteId}`,
+            updates
+        );
+        return response.data.data;
+    } catch (error) {
+        console.error(`Error updating HR note ${noteId}:`, error);
+        throw error;
+    }
+};
+
+/**
+ * ✅ YENİ METOT: HR Notu Sil
+ * DELETE /applications/:id/notes/:noteId
+ */
+export const deleteHRNote = async (
+    applicationId: string,
+    noteId: string
+): Promise<Application> => {
+    try {
+        const response = await api.delete<{ success: boolean; data: Application }>(
+            `/applications/${applicationId}/notes/${noteId}`
+        );
+        return response.data.data;
+    } catch (error) {
+        console.error(`Error deleting HR note ${noteId}:`, error);
+        throw error;
+    }
+};
+
+/**
+ * ✅ YENİ METOT: HR Rating Güncelle
+ * PATCH /applications/:id/rating
+ */
+export const updateHRRating = async (
+    applicationId: string,
+    rating: number
+): Promise<Application> => {
+    try {
+        const response = await api.patch<{ success: boolean; data: Application }>(
+            `/applications/${applicationId}/rating`,
+            { rating }
+        );
+        return response.data.data;
+    } catch (error) {
+        console.error(`Error updating HR rating for ${applicationId}:`, error);
+        throw error;
+    }
+};
+
+/**
+ * ✅ YENİ METOT: Toggle Favorite (Add/Remove)
+ */
+export const toggleFavorite = async (
+    applicationId: string,
+    action: 'add' | 'remove'
+): Promise<Application> => {
+    try {
+        const method = action === 'add' ? 'post' : 'delete';
+        const response = await api[method]<{ success: boolean; data: Application }>(
+            `/applications/${applicationId}/favorite`
+        );
+        return response.data.data;
+    } catch (error) {
+        console.error(`Error toggling favorite for ${applicationId}:`, error);
         throw error;
     }
 };

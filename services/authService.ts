@@ -1,17 +1,33 @@
 // services/authService.ts
 import { useAuthStore } from "@/store/authStore";
 import api from "@/utils/api";
+import { AUTH_CONFIG, calculateTokenExpiry } from "@/lib/auth.config";
+
+interface RefreshResponse {
+  success: boolean;
+  data?: {
+    expiresIn: number;
+  };
+}
 
 export const authService = {
   async login(email: string, password: string) {
     const response = await api.post("/auth/login", { email, password });
+    
+    // Token expiry'yi kaydet
+    if (response.data?.data?.expiresIn && typeof window !== 'undefined') {
+      const expiry = calculateTokenExpiry(response.data.data.expiresIn);
+      localStorage.setItem(AUTH_CONFIG.STORAGE_KEYS.TOKEN_EXPIRY, expiry.toString());
+      localStorage.setItem(AUTH_CONFIG.STORAGE_KEYS.LAST_ACTIVITY, Date.now().toString());
+    }
+    
     return response.data;
   },
 
   async getCurrentUser() {
     try {
-      const response = await api.get("/profile/me"); // ✅ Yeni endpoint'e yönlendirildi
-      return response.data.data; // ✅ Backend'den gelen kullanıcı bilgilerini al
+      const response = await api.get("/profile/me");
+      return response.data.data;
     } catch (error) {
       return null;
     }
@@ -31,24 +47,39 @@ export const authService = {
     return response.data;
   },
 
-  async refreshToken() {
+  async refreshToken(): Promise<RefreshResponse | null> {
     try {
-      await api.post("/auth/refresh"); // ✅ Backend yeni token'ı cookie'ye yazacak
-      return await this.getCurrentUser(); // ✅ Kullanıcı bilgilerini tekrar al
+      const response = await api.post<RefreshResponse>("/auth/refresh");
+      
+      // Token expiry'yi güncelle
+      if (response.data?.data?.expiresIn && typeof window !== 'undefined') {
+        const expiry = calculateTokenExpiry(response.data.data.expiresIn);
+        localStorage.setItem(AUTH_CONFIG.STORAGE_KEYS.TOKEN_EXPIRY, expiry.toString());
+        localStorage.setItem(AUTH_CONFIG.STORAGE_KEYS.LAST_ACTIVITY, Date.now().toString());
+      }
+      
+      return response.data;
     } catch (error) {
-      throw new Error("Token yenileme başarısız. Tekrar giriş yapmalısınız.");
+      console.error("Token refresh failed:", error);
+      throw error;
     }
   },
 
   async logout() {
     try {
       await api.post("/auth/logout");
-      useAuthStore.getState().logout(); // ✅ State sıfırla
     } catch (error) {
-      throw new Error("Çıkış yaparken hata oluştu.");
+      console.error("Logout API error:", error);
+    } finally {
+      // Her durumda local state'i temizle
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(AUTH_CONFIG.STORAGE_KEYS.TOKEN_EXPIRY);
+        localStorage.removeItem(AUTH_CONFIG.STORAGE_KEYS.SESSION_ID);
+        localStorage.removeItem(AUTH_CONFIG.STORAGE_KEYS.LAST_ACTIVITY);
+      }
+      useAuthStore.getState().logout();
     }
   },
-
 
   async requestPasswordReset(email: string) {
     const response = await api.post("/auth/forgot-password", { email });
@@ -60,3 +91,4 @@ export const authService = {
     return response.data;
   },
 };
+

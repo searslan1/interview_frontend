@@ -21,67 +21,67 @@ interface SettingsDialogProps {
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl p-0 h-[90vh]">
-        <Tabs defaultValue="general" className="h-full flex">
-          {/* Sol Sidebar */}
-          <TabsList className="h-full flex flex-col items-stretch justify-start space-y-1 rounded-none border-r bg-muted/50 p-2 w-52">
-            <TabsTrigger value="general" className="justify-start gap-2">
+      <DialogContent className="max-w-7xl w-[95vw] h-[95vh] max-h-[95vh] p-0 gap-0 overflow-hidden flex flex-col">
+        <Tabs defaultValue="general" className="h-full flex flex-col md:flex-row overflow-hidden">
+          {/* Sol Sidebar - Sabit */}
+          <TabsList className="flex flex-row md:flex-col items-stretch justify-start space-x-1 md:space-x-0 md:space-y-1 rounded-none border-b md:border-b-0 md:border-r bg-muted/50 p-2 w-full md:w-60 flex-shrink-0 overflow-x-auto md:overflow-x-visible">
+            <TabsTrigger value="general" className="justify-start gap-2 whitespace-nowrap px-3 py-2">
               <Settings className="h-4 w-4" />
-              Genel Ayarlar
+              <span className="hidden sm:inline">Genel Ayarlar</span>
             </TabsTrigger>
-            <TabsTrigger value="account" className="justify-start gap-2">
+            <TabsTrigger value="account" className="justify-start gap-2 whitespace-nowrap px-3 py-2">
               <Users className="h-4 w-4" />
-              Hesap & Yetkilendirme
+              <span className="hidden sm:inline">Hesap & Yetkilendirme</span>
             </TabsTrigger>
-            <TabsTrigger value="subscription" className="justify-start gap-2">
+            <TabsTrigger value="subscription" className="justify-start gap-2 whitespace-nowrap px-3 py-2">
               <CreditCard className="h-4 w-4" />
-              Abonelik & Faturalandırma
+              <span className="hidden sm:inline">Abonelik & Faturalandırma</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="justify-start gap-2">
+            <TabsTrigger value="notifications" className="justify-start gap-2 whitespace-nowrap px-3 py-2">
               <Bell className="h-4 w-4" />
-              Bildirim Ayarları
+              <span className="hidden sm:inline">Bildirim Ayarları</span>
             </TabsTrigger>
-            <TabsTrigger value="customization" className="justify-start gap-2">
+            <TabsTrigger value="customization" className="justify-start gap-2 whitespace-nowrap px-3 py-2">
               <Paintbrush className="h-4 w-4" />
-              Kişiselleştirme
+              <span className="hidden sm:inline">Kişiselleştirme</span>
             </TabsTrigger>
-            <TabsTrigger value="ai" className="justify-start gap-2">
+            <TabsTrigger value="ai" className="justify-start gap-2 whitespace-nowrap px-3 py-2">
               <Brain className="h-4 w-4" />
-              AI & Otomasyon
+              <span className="hidden sm:inline">AI & Otomasyon</span>
             </TabsTrigger>
-            <TabsTrigger value="privacy" className="justify-start gap-2">
+            <TabsTrigger value="privacy" className="justify-start gap-2 whitespace-nowrap px-3 py-2">
               <Shield className="h-4 w-4" />
-              Veri & Gizlilik
+              <span className="hidden sm:inline">Veri & Gizlilik</span>
             </TabsTrigger>
           </TabsList>
 
-          {/* Sağ İçerik Alanı */}
-          <div className="flex-1">
-            <ScrollArea className="h-full">
-              <div className="p-6">
-                <TabsContent value="general">
+          {/* Sağ İçerik Alanı - Scroll Edilebilir */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden">
+              <div className="p-6 space-y-0">
+                <TabsContent value="general" className="m-0 focus-visible:outline-none">
                   <GeneralSettings />
                 </TabsContent>
-                <TabsContent value="account">
-                  <AccountSettings />
-                </TabsContent>
-                <TabsContent value="subscription">
+                <TabsContent value="subscription" className="m-0 focus-visible:outline-none">
                   <SubscriptionSettings />
                 </TabsContent>
-                <TabsContent value="notifications">
+                <TabsContent value="account" className="m-0 focus-visible:outline-none">
+                  <AccountSettings />
+                </TabsContent>
+                <TabsContent value="notifications" className="m-0 focus-visible:outline-none">
                   <NotificationSettings />
                 </TabsContent>
-                <TabsContent value="customization">
+                <TabsContent value="customization" className="m-0 focus-visible:outline-none">
                   <CustomizationSettings />
                 </TabsContent>
-                <TabsContent value="ai">
+                <TabsContent value="ai" className="m-0 focus-visible:outline-none">
                   <AISettings />
                 </TabsContent>
-                <TabsContent value="privacy">
+                <TabsContent value="privacy" className="m-0 focus-visible:outline-none">
                   <PrivacySettings />
                 </TabsContent>
               </div>
-            </ScrollArea>
+            </div>
           </div>
         </Tabs>
       </DialogContent>

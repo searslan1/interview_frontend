@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { CandidateDetailCard } from "@/components/applications/candidate-detail-card";
 import useApplicationStore from "@/store/applicationStore"; // Zustand store
@@ -40,13 +40,11 @@ export function ApplicationManager({ interviewId }: ApplicationManagerProps) {
       ) : (
         <div className="flex space-x-4 overflow-x-auto pb-4">
           {filteredApplications.map((application) => (
-            <Card key={application._id} className="flex-shrink-0 w-64 bg-gray-800 text-white">
+            <Card key={application._id} className="flex-shrink-0 w-64 glass-card">
               <CardContent className="p-4">
                 <h3 className="font-semibold mb-2">{application.candidate.name} {application.candidate.surname}</h3>
-                <p className="text-sm mb-2">Başvuru: {formatDate(application.createdAt)}</p>
-                <Badge className={getStatusBadge(application.status)}>
-                  {formatStatus(application.status)}
-                </Badge>
+                <p className="text-sm mb-2 text-muted-foreground">Başvuru: {formatDate(application.createdAt)}</p>
+                <StatusBadge status={application.status} />
                 <Button className="mt-4 w-full" onClick={() => setSelectedApplication(application)}>
                   Detaylar
                 </Button>
@@ -64,30 +62,6 @@ export function ApplicationManager({ interviewId }: ApplicationManagerProps) {
       )}
     </motion.div>
   );
-}
-
-// ✅ Status badge rengi belirleme fonksiyonu
-function getStatusBadge(status: string) {
-  const statusClasses: Record<string, string> = {
-    accepted: "bg-green-500 text-white",
-    rejected: "bg-red-500 text-white",
-    pending: "bg-yellow-500 text-white",
-    in_progress: "bg-blue-500 text-white",
-    completed: "bg-green-500 text-white",
-  };
-  return statusClasses[status] || "bg-gray-500 text-white";
-}
-
-// ✅ Status için Türkçe dönüşüm
-function formatStatus(status: string) {
-  const statusMap: Record<string, string> = {
-    pending: "Beklemede",
-    in_progress: "Devam Ediyor",
-    completed: "Tamamlandı",
-    rejected: "Reddedildi",
-    accepted: "Kabul Edildi",
-  };
-  return statusMap[status] || status;
 }
 
 // ✅ Tarih formatını düzenleme fonksiyonu

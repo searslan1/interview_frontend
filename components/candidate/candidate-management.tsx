@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast"; // Toast bildirimi için
+import { useToast } from "@/components/ui/use-toast"; // Toast bildirimi için
 import { Loader2 } from "lucide-react";
 
 // Types & Stores

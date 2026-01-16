@@ -11,14 +11,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Plus, Trash2, UploadCloud, FileText, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
-import { useToast } from "@/hooks/use-toast"; // Shadcn toast hook'u (yoksa context'ten)
+import { useToast } from "@/components/ui/use-toast"; // Shadcn toast hook'u
 
 // --- MAIN COMPONENT ---
 
 export function WizardView({ step }: { step: "wizard-profile" | "wizard-docs" }) {
   const { 
     application, 
-    updateProfileDraft, 
+    updateProfile, 
     setStep, 
     completeWizard 
   } = usePublicApplicationStore();
@@ -55,9 +55,9 @@ export function WizardView({ step }: { step: "wizard-profile" | "wizard-docs" })
         <ProfileForm 
           initialData={application} 
           onSave={async (data) => {
-            await updateProfileDraft("education", data.education);
-            await updateProfileDraft("experience", data.experience);
-            await updateProfileDraft("skills", data.skills);
+            await updateProfile("education", data.education);
+            await updateProfile("experience", data.experience);
+            await updateProfile("skills", data.skills);
             setStep("wizard-docs"); // Sonraki adıma geç
           }} 
         />
@@ -66,7 +66,7 @@ export function WizardView({ step }: { step: "wizard-profile" | "wizard-docs" })
           initialData={application}
           onBack={() => setStep("wizard-profile")}
           onComplete={async (data) => {
-             await updateProfileDraft("documents", data);
+             await updateProfile("documents", data);
              completeWizard(); // Wizard bitti, System Check'e gönder
           }}
         />

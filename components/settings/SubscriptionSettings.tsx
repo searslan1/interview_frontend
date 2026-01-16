@@ -9,28 +9,31 @@ import { Label } from "@/components/ui/label"
 
 export function SubscriptionSettings() {
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold mb-4">Abonelik & Faturalandırma</h2>
+    <div className="space-y-8 pb-6">
+      <div className="space-y-2">
+        <h2 className="text-2xl font-bold">Abonelik & Faturalandırma</h2>
+        <p className="text-muted-foreground">Plan ve ödeme bilgilerinizi yönetin</p>
+      </div>
 
-      <Card>
+      <Card className="border-2">
         <CardHeader>
-          <CardTitle>Mevcut Plan</CardTitle>
+          <CardTitle className="text-lg">Mevcut Plan</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <p className="font-medium">Pro Plan</p>
+          <div className="space-y-2">
+            <p className="font-semibold text-lg">Pro Plan</p>
             <p className="text-sm text-muted-foreground">Aylık $99</p>
           </div>
-          <div>
-            <h4 className="font-medium mb-2">Kullanılabilir Özellikler:</h4>
-            <ul className="list-disc list-inside text-sm text-muted-foreground">
+          <div className="space-y-3">
+            <h4 className="font-medium">Kullanılabilir Özellikler:</h4>
+            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground pl-2">
               <li>Sınırsız mülakat oluşturma</li>
               <li>AI destekli aday analizi</li>
               <li>Gelişmiş raporlama ve analitik</li>
               <li>7/24 öncelikli destek</li>
             </ul>
           </div>
-          <Button variant="outline">Planı Yükselt</Button>
+          <Button variant="outline" className="w-full sm:w-auto">Planı Yükselt</Button>
         </CardContent>
       </Card>
 
@@ -39,27 +42,47 @@ export function SubscriptionSettings() {
           <CardTitle>Ödeme Geçmişi</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tarih</TableHead>
-                <TableHead>Tutar</TableHead>
-                <TableHead>Durum</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell>01.05.2023</TableCell>
-                <TableCell>$99.00</TableCell>
-                <TableCell>Ödendi</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>01.04.2023</TableCell>
-                <TableCell>$99.00</TableCell>
-                <TableCell>Ödendi</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tarih</TableHead>
+                  <TableHead>Tutar</TableHead>
+                  <TableHead>Durum</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell>01.05.2023</TableCell>
+                  <TableCell>$99.00</TableCell>
+                  <TableCell>
+                    <span className="text-green-600 font-medium">Ödendi</span>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>01.04.2023</TableCell>
+                  <TableCell>$99.00</TableCell>
+                  <TableCell>
+                    <span className="text-green-600 font-medium">Ödendi</span>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>01.03.2023</TableCell>
+                  <TableCell>$99.00</TableCell>
+                  <TableCell>
+                    <span className="text-green-600 font-medium">Ödendi</span>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>01.02.2023</TableCell>
+                  <TableCell>$99.00</TableCell>
+                  <TableCell>
+                    <span className="text-yellow-600 font-medium">Beklemede</span>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -106,7 +129,7 @@ export function SubscriptionSettings() {
           <CardTitle>Fatura Bilgileri</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Şirket Adı</Label>
               <Input placeholder="Şirket Adı" />
@@ -115,7 +138,7 @@ export function SubscriptionSettings() {
               <Label>Vergi Numarası</Label>
               <Input placeholder="Vergi Numarası" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <Label>Adres</Label>
               <Input placeholder="Adres" />
             </div>
@@ -132,7 +155,7 @@ export function SubscriptionSettings() {
               <Input placeholder="Posta Kodu" />
             </div>
           </div>
-          <Button>Fatura Bilgilerini Güncelle</Button>
+          <Button className="w-full md:w-auto">Fatura Bilgilerini Güncelle</Button>
         </CardContent>
       </Card>
     </div>

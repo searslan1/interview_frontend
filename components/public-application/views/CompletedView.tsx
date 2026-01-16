@@ -14,7 +14,7 @@ import {
 import { useEffect, useState } from "react";
 
 export function CompletedView() {
-  const { uploadQueue, resetSession } = usePublicApplicationStore();
+  const { uploadQueue, clearSession } = usePublicApplicationStore();
   
   // Kuyrukta bekleyen dosya var mı?
   const isSyncing = uploadQueue.length > 0;
@@ -112,7 +112,7 @@ export function CompletedView() {
            <Button 
              variant="outline" 
              onClick={() => {
-                resetSession();
+                clearSession();
                 window.location.href = "/"; // Veya şirketin kariyer sayfasına
              }}
            >

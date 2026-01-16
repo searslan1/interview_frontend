@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -11,25 +11,26 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronLeft, ChevronRight, Info, FileText, Plus, ChevronRightIcon, CheckCircle2, Loader2 } from "lucide-react";
-import { useApplicationStore } from "@/store/applicationStore";
-import type { Application } from "@/types/application";
+import { ChevronLeft, ChevronRight, Info, FileText, Plus, ChevronRightIcon, CheckCircle2, Loader2, Star } from "lucide-react";
+import { useDashboardStore } from "@/store/dashboardStore";
+import type { RecentApplication } from "@/types/dashboard";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function ApplicationSlider() {
   const [startIndex, setStartIndex] = useState(0);
   const sliderRef = useRef<HTMLDivElement>(null);
   
-  const { applications, fetchApplications, loading } = useApplicationStore();
+  const { recentApplications, loading, fetchDashboardData } = useDashboardStore();
 
   useEffect(() => {
-    fetchApplications();
-  }, [fetchApplications]);
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   // Maksimum 5 başvuru göster
-  const displayedApplications = applications.slice(0, 5);
+  const displayedApplications = recentApplications.slice(0, 5);
   const visibleCardCount = Math.min(3, displayedApplications.length);
 
   const nextSlide = () => {
@@ -42,27 +43,6 @@ export function ApplicationSlider() {
     if (startIndex > 0) {
       setStartIndex((prev) => prev - 1);
     }
-  };
-
-  // Analiz durumu badge'i - "AI Skoru" yerine daha aksiyonel dil
-  const getAnalysisBadge = (application: Application) => {
-    const hasAnalysis = application.generalAIAnalysis?.overallScore != null;
-    
-    if (hasAnalysis) {
-      return (
-        <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 gap-1">
-          <CheckCircle2 className="h-3 w-3" />
-          Analiz Hazır
-        </Badge>
-      );
-    }
-    
-    return (
-      <Badge variant="secondary" className="gap-1">
-        <Loader2 className="h-3 w-3 animate-spin" />
-        Analiz Devam Ediyor
-      </Badge>
-    );
   };
 
   return (
@@ -84,12 +64,12 @@ export function ApplicationSlider() {
                 </TooltipContent>
               </Tooltip>
             </div>
-            {applications.length > 0 && (
+            {recentApplications.length > 0 && (
               <Link 
                 href="/applications" 
                 className="text-xs text-primary hover:underline flex items-center gap-1"
               >
-                Tümünü Gör ({applications.length})
+                Tümünü Gör ({recentApplications.length})
                 <ChevronRightIcon className="h-3 w-3" />
               </Link>
             )}
@@ -97,10 +77,14 @@ export function ApplicationSlider() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="flex gap-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex-1">
+                  <Skeleton className="h-36 w-full" />
+                </div>
+              ))}
             </div>
-          ) : applications.length === 0 ? (
+          ) : recentApplications.length === 0 ? (
             /* Boş durum - aksiyon içeren mesaj */
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <div className="rounded-full bg-primary/10 p-3 mb-3">
@@ -124,38 +108,59 @@ export function ApplicationSlider() {
                   className="flex transition-transform duration-300 ease-in-out gap-4"
                   style={{ transform: `translateX(-${startIndex * (100 / visibleCardCount)}%)` }}
                 >
-                  {displayedApplications.map((application: Application) => (
+                  {displayedApplications.map((application: RecentApplication) => (
                     <Link
                       key={application._id}
                       href={`/applications/${application._id}`}
                       className="flex-shrink-0 w-full md:w-[calc(33.333%-1rem)] group"
                     >
-                      <Card className="h-full hover:shadow-md transition-shadow">
+                      <Card className="h-full hover:shadow-md transition-shadow relative">
                         <CardContent className="p-4">
+                          {/* Favorite indicator */}
+                          {application.isFavorite && (
+                            <Star className="absolute top-2 right-2 h-4 w-4 text-yellow-400 fill-yellow-400" />
+                          )}
+                          
                           <div className="flex items-center gap-3 mb-3">
                             <Avatar className="h-10 w-10">
                               <AvatarImage
                                 src={`https://i.pravatar.cc/150?u=${application._id}`}
-                                alt={application.candidate?.name || "Aday"}
+                                alt={application.candidateName}
                               />
                               <AvatarFallback className="text-xs">
-                                {application.candidate?.name?.charAt(0) || "?"}
+                                {application.candidateName.charAt(0)}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
                               <h3 className="font-medium text-sm group-hover:text-primary transition-colors truncate">
-                                {application.candidate?.name || "Bilinmiyor"}
+                                {application.candidateName}
                               </h3>
                               <p className="text-xs text-muted-foreground truncate">
-                                {application.candidate?.email || "E-posta mevcut değil"}
+                                {application.candidateEmail}
                               </p>
                             </div>
                           </div>
+                          
+                          {/* Mülakat başlığı */}
+                          <p className="text-xs text-muted-foreground mb-2 truncate">
+                            {application.interviewTitle}
+                          </p>
+                          
                           <div className="flex justify-between items-center">
-                            {getAnalysisBadge(application)}
-                            <span className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(application.createdAt), { addSuffix: true, locale: tr })}
-                            </span>
+                            <StatusBadge status={application.status as any} size="sm" />
+                            <div className="flex flex-col items-end gap-1">
+                              {application.aiScore != null && (
+                                <span className="text-xs font-medium text-primary">
+                                  %{Math.round(application.aiScore)}
+                                </span>
+                              )}
+                              <span className="text-xs text-muted-foreground">
+                                {application.createdAt && !isNaN(new Date(application.createdAt).getTime()) 
+                                  ? formatDistanceToNow(new Date(application.createdAt), { addSuffix: true, locale: tr })
+                                  : "Bilinmeyen tarih"
+                                }
+                              </span>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>

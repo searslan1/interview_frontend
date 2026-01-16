@@ -321,9 +321,14 @@ export function ReportingFilters() {
             return (
               <Badge key={posId} variant="secondary" className="gap-1">
                 {pos?.name || posId}
-                <button onClick={() => togglePosition(posId)} className="ml-1 hover:text-destructive">
+                <Button 
+                  onClick={() => togglePosition(posId)} 
+                  variant="ghost" 
+                  size="sm"
+                  className="ml-1 hover:text-destructive h-auto w-auto p-0"
+                >
                   <X className="h-3 w-3" />
-                </button>
+                </Button>
               </Badge>
             );
           })}
@@ -340,9 +345,14 @@ export function ReportingFilters() {
                 : filters.datePreset === "60d"
                 ? "Son 60 Gün"
                 : "Son 90 Gün"}
-              <button onClick={() => setDatePreset("30d")} className="ml-1 hover:text-destructive">
+              <Button 
+                onClick={() => setDatePreset("30d")} 
+                variant="ghost" 
+                size="sm"
+                className="ml-1 hover:text-destructive h-auto w-auto p-0"
+              >
                 <X className="h-3 w-3" />
-              </button>
+              </Button>
             </Badge>
           )}
 
@@ -350,12 +360,14 @@ export function ReportingFilters() {
           {filters.interviewIds && filters.interviewIds.length > 0 && (
             <Badge variant="secondary" className="gap-1">
               {availableInterviewTypes.find((t) => t.id === filters.interviewIds?.[0])?.title}
-              <button
+              <Button
                 onClick={() => setFilters({ interviewIds: undefined })}
-                className="ml-1 hover:text-destructive"
+                variant="ghost" 
+                size="sm"
+                className="ml-1 hover:text-destructive h-auto w-auto p-0"
               >
                 <X className="h-3 w-3" />
-              </button>
+              </Button>
             </Badge>
           )}
 
@@ -363,12 +375,14 @@ export function ReportingFilters() {
           {filters.reviewerIds && filters.reviewerIds.length > 0 && (
             <Badge variant="secondary" className="gap-1">
               {availableReviewers.find((r) => r.id === filters.reviewerIds?.[0])?.name}
-              <button
+              <Button
                 onClick={() => setFilters({ reviewerIds: undefined })}
-                className="ml-1 hover:text-destructive"
+                variant="ghost" 
+                size="sm"
+                className="ml-1 hover:text-destructive h-auto w-auto p-0"
               >
                 <X className="h-3 w-3" />
-              </button>
+              </Button>
             </Badge>
           )}
 
@@ -379,9 +393,14 @@ export function ReportingFilters() {
               <Badge key={tag} variant="secondary" className="gap-1">
                 <div className={cn("w-2 h-2 rounded-full", tagInfo?.color)} />
                 {tagInfo?.label}
-                <button onClick={() => toggleTag(tag)} className="ml-1 hover:text-destructive">
+                <Button 
+                  onClick={() => toggleTag(tag)} 
+                  variant="ghost" 
+                  size="sm"
+                  className="ml-1 hover:text-destructive h-auto w-auto p-0"
+                >
                   <X className="h-3 w-3" />
-                </button>
+                </Button>
               </Badge>
             );
           })}

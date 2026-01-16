@@ -75,7 +75,6 @@ export interface Interview {
   title: string;
   description?: string;
   expirationDate: string; // Backend'den JSON string gelir
-  type?: InterviewType;
   position?: InterviewPosition;
   createdBy: {
     userId: string;

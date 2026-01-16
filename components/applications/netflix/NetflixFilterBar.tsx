@@ -27,50 +27,45 @@ import {
   SheetTrigger,
   SheetFooter,
 } from "@/components/ui/sheet";
-import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import {
   Search,
   SlidersHorizontal,
   X,
   Filter,
   TrendingUp,
-  Calendar,
-  Building2,
   Tag,
   RotateCcw,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ApplicationFilters } from "@/types/application";
+import type { ApplicationFilterState, ApplicationStatus } from "@/types/application";
 
 interface NetflixFilterBarProps {
-  filters: Partial<ApplicationFilters>;
-  onFilterChange: (filters: Partial<ApplicationFilters>) => void;
+  filters: Partial<ApplicationFilterState>;
+  onFilterChange: (filters: Partial<ApplicationFilterState>) => void;
   positions?: { id: string; title: string; department?: string }[];
   totalCount?: number;
   filteredCount?: number;
+  loading?: boolean;
 }
 
-// Filtre etiketleri
-const statusLabels: Record<string, string> = {
+// Status etiketleri
+const statusLabels: Record<ApplicationStatus | 'all', string> = {
   all: "Tümü",
-  completed: "Tamamlandı",
-  inProgress: "Devam Ediyor",
-  incomplete: "Tamamlanmadı",
-};
-
-const applicationStatusLabels: Record<string, string> = {
-  all: "Tümü",
-  reviewing: "İnceleniyor",
   pending: "Beklemede",
-  positive: "Olumlu",
-  negative: "Olumsuz",
+  otp_verified: "OTP Onaylandı",
+  in_progress: "Devam Ediyor",
+  completed: "Tamamlandı",
+  rejected: "Reddedildi",
+  accepted: "Kabul Edildi",
+  awaiting_video_responses: "Video Bekleniyor",
+  awaiting_ai_analysis: "Analiz Bekleniyor",
 };
 
-const experienceLabels: Record<string, string> = {
+const analysisStatusLabels: Record<'all' | 'completed' | 'pending', string> = {
   all: "Tümü",
-  entry: "Giriş Seviye",
-  mid: "Orta Seviye",
-  senior: "Üst Seviye",
+  completed: "Analiz Tamamlandı",
+  pending: "Analiz Bekleniyor",
 };
 
 export function NetflixFilterBar({
@@ -79,16 +74,23 @@ export function NetflixFilterBar({
   positions = [],
   totalCount = 0,
   filteredCount = 0,
+  loading = false,
 }: NetflixFilterBarProps) {
-  const [localFilters, setLocalFilters] = useState<Partial<ApplicationFilters>>(filters);
-  const [searchTerm, setSearchTerm] = useState(filters.searchTerm || "");
+  const [localFilters, setLocalFilters] = useState<Partial<ApplicationFilterState>>(filters);
+  const [searchTerm, setSearchTerm] = useState(filters.query || "");
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  // Sync with external filters
+  useEffect(() => {
+    setLocalFilters(filters);
+    setSearchTerm(filters.query || "");
+  }, [filters]);
 
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchTerm !== filters.searchTerm) {
-        onFilterChange({ ...filters, searchTerm });
+      if (searchTerm !== filters.query) {
+        onFilterChange({ ...filters, query: searchTerm });
       }
     }, 300);
     return () => clearTimeout(timer);
@@ -96,7 +98,7 @@ export function NetflixFilterBar({
 
   // Aktif filtre sayısı
   const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
-    if (key === "searchTerm") return false;
+    if (key === "query") return false;
     if (key === "aiScoreMin" && value === 0) return false;
     if (value === "all" || value === undefined || value === "") return false;
     return true;
@@ -110,13 +112,12 @@ export function NetflixFilterBar({
 
   // Filtreleri sıfırla
   const resetFilters = () => {
-    const defaultFilters: Partial<ApplicationFilters> = {
-      completionStatus: "all",
-      applicationStatus: "all",
-      experienceLevel: "all",
+    const defaultFilters: Partial<ApplicationFilterState> = {
+      status: "all",
+      analysisStatus: "all",
       aiScoreMin: 0,
-      searchTerm: "",
-      personalityType: "",
+      query: "",
+      interviewId: undefined,
     };
     setLocalFilters(defaultFilters);
     setSearchTerm("");
@@ -124,19 +125,19 @@ export function NetflixFilterBar({
   };
 
   // Tek filtre güncelle
-  const updateFilter = <K extends keyof ApplicationFilters>(
+  const updateFilter = <K extends keyof ApplicationFilterState>(
     key: K,
-    value: ApplicationFilters[K]
+    value: ApplicationFilterState[K]
   ) => {
     setLocalFilters((prev) => ({ ...prev, [key]: value }));
   };
 
   return (
-    <div className="sticky top-16 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="sticky top-0 z-40 bg-background border-b border-border shadow-sm">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           {/* Sol: Arama ve Hızlı Filtreler */}
-          <div className="flex items-center gap-3 flex-1">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             {/* Arama */}
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -145,14 +146,17 @@ export function NetflixFilterBar({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 pr-10 bg-muted/50"
+                disabled={loading}
               />
               {searchTerm && (
-                <button
+                <Button
                   onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground h-6 w-6"
                 >
                   <X className="h-4 w-4" />
-                </button>
+                </Button>
               )}
             </div>
 
@@ -161,7 +165,7 @@ export function NetflixFilterBar({
               {/* AI Skor Filtresi */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
+                  <Button variant="outline" size="sm" className="gap-2" disabled={loading}>
                     <TrendingUp className="h-4 w-4" />
                     AI Skoru
                     {filters.aiScoreMin && filters.aiScoreMin > 0 && (
@@ -184,10 +188,19 @@ export function NetflixFilterBar({
                       onValueChange={(value) => updateFilter("aiScoreMin", value[0])}
                     />
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => updateFilter("aiScoreMin", 0)}>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex-1" 
+                        onClick={() => updateFilter("aiScoreMin", 0)}
+                      >
                         Sıfırla
                       </Button>
-                      <Button size="sm" className="flex-1" onClick={() => onFilterChange({ ...filters, aiScoreMin: localFilters.aiScoreMin })}>
+                      <Button 
+                        size="sm" 
+                        className="flex-1" 
+                        onClick={() => onFilterChange({ ...filters, aiScoreMin: localFilters.aiScoreMin })}
+                      >
                         Uygula
                       </Button>
                     </div>
@@ -197,10 +210,11 @@ export function NetflixFilterBar({
 
               {/* Durum Filtresi */}
               <Select
-                value={filters.completionStatus || "all"}
-                onValueChange={(value) => onFilterChange({ ...filters, completionStatus: value as ApplicationFilters["completionStatus"] })}
+                value={filters.status || "all"}
+                onValueChange={(value) => onFilterChange({ ...filters, status: value as ApplicationFilterState["status"] })}
+                disabled={loading}
               >
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder="Durum" />
                 </SelectTrigger>
                 <SelectContent>
@@ -216,7 +230,8 @@ export function NetflixFilterBar({
               {positions.length > 0 && (
                 <Select
                   value={filters.interviewId || "all"}
-                  onValueChange={(value) => onFilterChange({ ...filters, interviewId: value === "all" ? "" : value })}
+                  onValueChange={(value) => onFilterChange({ ...filters, interviewId: value === "all" ? undefined : value })}
+                  disabled={loading}
                 >
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Pozisyon" />
@@ -237,9 +252,10 @@ export function NetflixFilterBar({
           {/* Sağ: Sonuç Sayısı ve Detaylı Filtreler */}
           <div className="flex items-center gap-3">
             {/* Sonuç Sayısı */}
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+              {loading && <Loader2 className="h-3 w-3 animate-spin" />}
               <span className="font-medium text-foreground">{filteredCount}</span>
-              {filteredCount !== totalCount && (
+              {filteredCount !== totalCount && totalCount > 0 && (
                 <span> / {totalCount}</span>
               )}
               <span> başvuru</span>
@@ -258,9 +274,10 @@ export function NetflixFilterBar({
                     size="sm"
                     onClick={resetFilters}
                     className="gap-2 text-muted-foreground"
+                    disabled={loading}
                   >
                     <RotateCcw className="h-4 w-4" />
-                    Filtreleri Temizle
+                    Temizle
                     <Badge variant="secondary">{activeFilterCount}</Badge>
                   </Button>
                 </motion.div>
@@ -270,15 +287,15 @@ export function NetflixFilterBar({
             {/* Detaylı Filtreler Sheet */}
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2" disabled={loading}>
                   <SlidersHorizontal className="h-4 w-4" />
-                  Tüm Filtreler
+                  <span className="hidden sm:inline">Filtreler</span>
                   {activeFilterCount > 0 && (
                     <Badge variant="default">{activeFilterCount}</Badge>
                   )}
                 </Button>
               </SheetTrigger>
-              <SheetContent className="w-full sm:max-w-md">
+              <SheetContent className="w-full sm:max-w-md overflow-y-auto">
                 <SheetHeader>
                   <SheetTitle className="flex items-center gap-2">
                     <Filter className="h-5 w-5" />
@@ -304,23 +321,12 @@ export function NetflixFilterBar({
                     />
                   </div>
 
-                  {/* Tarih Aralığı */}
+                  {/* Başvuru Durumu */}
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <Label>Tarih Aralığı</Label>
-                    </div>
-                    <DatePickerWithRange
-                      onChange={(range) => updateFilter("dateRange", range as any)}
-                    />
-                  </div>
-
-                  {/* Tamamlanma Durumu */}
-                  <div className="space-y-3">
-                    <Label>Tamamlanma Durumu</Label>
+                    <Label>Başvuru Durumu</Label>
                     <Select
-                      value={localFilters.completionStatus || "all"}
-                      onValueChange={(value) => updateFilter("completionStatus", value as ApplicationFilters["completionStatus"])}
+                      value={localFilters.status || "all"}
+                      onValueChange={(value) => updateFilter("status", value as ApplicationFilterState["status"])}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -335,41 +341,18 @@ export function NetflixFilterBar({
                     </Select>
                   </div>
 
-                  {/* Başvuru Durumu */}
+                  {/* Analiz Durumu */}
                   <div className="space-y-3">
-                    <Label>Değerlendirme Durumu</Label>
+                    <Label>AI Analiz Durumu</Label>
                     <Select
-                      value={localFilters.applicationStatus || "all"}
-                      onValueChange={(value) => updateFilter("applicationStatus", value as ApplicationFilters["applicationStatus"])}
+                      value={localFilters.analysisStatus || "all"}
+                      onValueChange={(value) => updateFilter("analysisStatus", value as ApplicationFilterState["analysisStatus"])}
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(applicationStatusLabels).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Deneyim Seviyesi */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-muted-foreground" />
-                      <Label>Deneyim Seviyesi</Label>
-                    </div>
-                    <Select
-                      value={localFilters.experienceLevel || "all"}
-                      onValueChange={(value) => updateFilter("experienceLevel", value as ApplicationFilters["experienceLevel"])}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(experienceLabels).map(([value, label]) => (
+                        {Object.entries(analysisStatusLabels).map(([value, label]) => (
                           <SelectItem key={value} value={value}>
                             {label}
                           </SelectItem>
@@ -387,7 +370,7 @@ export function NetflixFilterBar({
                       </div>
                       <Select
                         value={localFilters.interviewId || "all"}
-                        onValueChange={(value) => updateFilter("interviewId", value === "all" ? "" : value)}
+                        onValueChange={(value) => updateFilter("interviewId", value === "all" ? undefined : value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Tüm Pozisyonlar" />
@@ -431,7 +414,7 @@ export function NetflixFilterBar({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border"
+              className="flex flex-wrap gap-2 pt-3 border-t border-border"
             >
               {filters.aiScoreMin && filters.aiScoreMin > 0 && (
                 <Badge variant="secondary" className="gap-1">
@@ -444,33 +427,22 @@ export function NetflixFilterBar({
                   </button>
                 </Badge>
               )}
-              {filters.completionStatus && filters.completionStatus !== "all" && (
+              {filters.status && filters.status !== "all" && (
                 <Badge variant="secondary" className="gap-1">
-                  {statusLabels[filters.completionStatus]}
+                  {statusLabels[filters.status]}
                   <button
-                    onClick={() => onFilterChange({ ...filters, completionStatus: "all" })}
+                    onClick={() => onFilterChange({ ...filters, status: "all" })}
                     className="ml-1 hover:text-destructive"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
               )}
-              {filters.applicationStatus && filters.applicationStatus !== "all" && (
+              {filters.analysisStatus && filters.analysisStatus !== "all" && (
                 <Badge variant="secondary" className="gap-1">
-                  {applicationStatusLabels[filters.applicationStatus]}
+                  {analysisStatusLabels[filters.analysisStatus]}
                   <button
-                    onClick={() => onFilterChange({ ...filters, applicationStatus: "all" })}
-                    className="ml-1 hover:text-destructive"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              )}
-              {filters.experienceLevel && filters.experienceLevel !== "all" && (
-                <Badge variant="secondary" className="gap-1">
-                  {experienceLabels[filters.experienceLevel]}
-                  <button
-                    onClick={() => onFilterChange({ ...filters, experienceLevel: "all" })}
+                    onClick={() => onFilterChange({ ...filters, analysisStatus: "all" })}
                     className="ml-1 hover:text-destructive"
                   >
                     <X className="h-3 w-3" />
@@ -479,9 +451,9 @@ export function NetflixFilterBar({
               )}
               {filters.interviewId && (
                 <Badge variant="secondary" className="gap-1">
-                  Pozisyon Filtreli
+                  {positions.find(p => p.id === filters.interviewId)?.title || "Pozisyon Filtreli"}
                   <button
-                    onClick={() => onFilterChange({ ...filters, interviewId: "" })}
+                    onClick={() => onFilterChange({ ...filters, interviewId: undefined })}
                     className="ml-1 hover:text-destructive"
                   >
                     <X className="h-3 w-3" />

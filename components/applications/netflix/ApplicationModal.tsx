@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -36,12 +37,18 @@ import {
   ThumbsDown,
   ExternalLink,
   FileText,
-  Clock
+  Clock,
+  Plus,
+  Edit,
+  Trash2,
+  Archive
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Application, GeneralAIAnalysis, ApplicationResponse } from "@/types/application"; // ApplicationResponse eklendi
-import { useFavoriteCandidatesStore } from "@/store/favorite-candidates-store";
 import { useApplicationStore } from "@/store/applicationStore";
+import { useAuthStore } from "@/store/authStore";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 interface ApplicationModalProps {
   application: Application | null;
@@ -75,11 +82,27 @@ export function ApplicationModal({
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState(0);
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [newNote, setNewNote] = useState("");
+  const [rating, setRating] = useState(0);
 
-  const { addFavorite, removeFavorite, isFavorite } = useFavoriteCandidatesStore();
-  const { updateStatus } = useApplicationStore();
+  const { updateStatus, addNote, updateRating, toggleFavoriteAction } = useApplicationStore();
+  const { user } = useAuthStore();
+  const router = useRouter();
 
-  // HATA ÇÖZÜMÜ: application null kontrolü en başa alındı
+  // ✅ Favori durumunu hesapla (favoriteBy array'inden)
+  const isFavorite = useMemo(() => {
+    if (!application?.favoriteBy || !user?._id) return false;
+    return application.favoriteBy.includes(user._id);
+  }, [application?.favoriteBy, user?._id]);
+
+  // Rating'i application'dan al
+  useEffect(() => {
+    if (application) {
+      setRating(application.hrReview?.rating || 0);
+    }
+  }, [application?._id]);
+
+  // HATA ÇÖZÜMÜ: Hook'lardan sonra early return
   if (!application) return null;
 
   // Analiz verileri
@@ -140,22 +163,35 @@ export function ApplicationModal({
     setTimeout(() => setIsLoadingAnalysis(false), 500);
   };
 
-  const toggleFavorite = () => {
+  const toggleFavoriteHandler = () => {
     if (application) {
-      if (isFavorite(application._id)) removeFavorite(application._id);
-      else {
-        addFavorite({
-          id: application._id,
-          name: `${application.candidate.name} ${application.candidate.surname}`,
-          position: "Aday",
-          score: application.generalAIAnalysis?.overallScore ?? 0,
-        });
-      }
+      // ✅ Backend entegreli favori toggle (isFavorite useMemo'dan geliyor)
+      toggleFavoriteAction(application._id, !isFavorite);
     }
   };
 
-  const handleStatusUpdate = async (newStatus: 'accepted' | 'rejected' | 'pending') => {
+  const handleStatusUpdate = async (newStatus: 'accepted' | 'rejected' | 'pending' | 'archived') => {
     if (application?._id) await updateStatus(application._id, newStatus);
+  };
+
+  const handleAddNote = async () => {
+    if (!application?._id || !newNote.trim()) return;
+    try {
+      await addNote(application._id, newNote.trim(), false);
+      setNewNote("");
+    } catch (error) {
+      console.error("Not eklenirken hata:", error);
+    }
+  };
+
+  const handleRatingChange = async (newRating: number) => {
+    if (!application?._id) return;
+    setRating(newRating);
+    try {
+      await updateRating(application._id, newRating);
+    } catch (error) {
+      console.error("Rating güncellenirken hata:", error);
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -192,6 +228,18 @@ export function ApplicationModal({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    onClick={() => {
+                      onOpenChange(false);
+                      router.push(`/applications/${application._id}`);
+                    }}
+                    className="gap-2"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    <span className="hidden sm:inline">Detaylı Görünüm</span>
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="text-white"><X className="h-6 w-6" /></Button>
                 </div>
              </div>
@@ -228,6 +276,259 @@ export function ApplicationModal({
                 </TabsList>
 
                 <ScrollArea className="flex-1">
+                  {/* GENEL BAKIŞ SEKMESİ (Aday Bilgileri) */}
+                  <TabsContent value="overview" className="p-4 space-y-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Aday Bilgileri</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Ad Soyad</p>
+                            <p className="font-medium">{application.candidate.name} {application.candidate.surname}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Mail className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">E-posta</p>
+                            <p className="font-medium">{application.candidate.email}</p>
+                          </div>
+                        </div>
+
+                        {application.candidate.phone && (
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <Phone className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Telefon</p>
+                              <p className="font-medium">{application.candidate.phone}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Calendar className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Başvuru Tarihi</p>
+                            <p className="font-medium">{formatDate(application.createdAt)}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <FileText className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Durum</p>
+                            <Badge variant="outline">{application.status}</Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* AI Genel Skoru */}
+                    {aiAnalysis && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">AI Değerlendirme Özeti</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Genel Skor</span>
+                            <span className="text-2xl font-bold text-primary">
+                              {aiAnalysis.overallScore || 0}
+                            </span>
+                          </div>
+                          
+                          {aiAnalysis.technicalSkillsScore !== undefined && (
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Teknik Beceriler</span>
+                                <span className="font-medium">{aiAnalysis.technicalSkillsScore}</span>
+                              </div>
+                              <Progress value={aiAnalysis.technicalSkillsScore} className="h-2" />
+                            </div>
+                          )}
+
+                          {aiAnalysis.communicationScore !== undefined && (
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">İletişim</span>
+                                <span className="font-medium">{aiAnalysis.communicationScore}</span>
+                              </div>
+                              <Progress value={aiAnalysis.communicationScore} className="h-2" />
+                            </div>
+                          )}
+
+                          {aiAnalysis.problemSolvingScore !== undefined && (
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Problem Çözme</span>
+                                <span className="font-medium">{aiAnalysis.problemSolvingScore}</span>
+                              </div>
+                              <Progress value={aiAnalysis.problemSolvingScore} className="h-2" />
+                            </div>
+                          )}
+
+                          {aiAnalysis.recommendation && (
+                            <div className="pt-3 border-t">
+                              <p className="text-sm text-muted-foreground mb-1">Öneri</p>
+                              <p className="text-sm">{aiAnalysis.recommendation}</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Güçlü Yönler */}
+                    {aiAnalysis?.strengths && aiAnalysis.strengths.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <ThumbsUp className="h-4 w-4 text-green-500" />
+                            Güçlü Yönler
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ul className="space-y-2">
+                            {aiAnalysis.strengths.map((strength, index) => (
+                              <li key={index} className="text-sm flex items-start gap-2">
+                                <span className="text-green-500 mt-1">•</span>
+                                <span>{strength}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Aksiyon Butonları */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button 
+                        variant="outline" 
+                        className="gap-2"
+                        onClick={() => handleStatusUpdate('accepted')}
+                      >
+                        <ThumbsUp className="h-4 w-4" />
+                        Kabul Et
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="gap-2"
+                        onClick={() => handleStatusUpdate('rejected')}
+                      >
+                        <ThumbsDown className="h-4 w-4" />
+                        Reddet
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="gap-2 text-muted-foreground hover:text-foreground"
+                        onClick={() => handleStatusUpdate('archived')}
+                      >
+                        <Archive className="h-4 w-4" />
+                        Arşivle
+                      </Button>
+                    </div>
+
+                    {/* HR Rating */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">İK Değerlendirme</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">Puan:</span>
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                onClick={() => handleRatingChange(star)}
+                                className="focus:outline-none"
+                              >
+                                <Star
+                                  className={cn(
+                                    "h-5 w-5 transition-colors cursor-pointer",
+                                    (rating || application.hrReview?.rating || 0) >= star
+                                      ? "fill-yellow-400 text-yellow-400"
+                                      : "text-gray-300"
+                                  )}
+                                />
+                              </button>
+                            ))}
+                          </div>
+                          <span className="text-sm font-medium ml-2">
+                            {rating || application.hrReview?.rating || 0} / 5
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* HR Notes */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <MessageSquare className="h-4 w-4" />
+                          İK Notları
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {/* Mevcut Notlar */}
+                        {application.hrNotes && application.hrNotes.length > 0 ? (
+                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                            {application.hrNotes.map((note) => (
+                              <div
+                                key={note._id}
+                                className="p-3 bg-muted/50 rounded-lg text-sm"
+                              >
+                                <div className="flex justify-between items-start mb-1">
+                                  <span className="font-medium text-xs">
+                                    {note.userName}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(note.createdAt).toLocaleDateString("tr-TR")}
+                                  </span>
+                                </div>
+                                <p className="text-muted-foreground">{note.content}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Henüz not eklenmemiş</p>
+                        )}
+
+                        {/* Yeni Not Ekleme */}
+                        <div className="space-y-2">
+                          <Textarea
+                            placeholder="Yeni not ekle..."
+                            value={newNote}
+                            onChange={(e) => setNewNote(e.target.value)}
+                            className="min-h-[60px]"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={handleAddNote}
+                            disabled={!newNote.trim()}
+                            className="w-full gap-2"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Not Ekle
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
                   {/* AI ANALİZİ SEKİMESİ (Genel Rapor) */}
                   <TabsContent value="analysis" className="p-4 space-y-4">
                     {aiAnalysis && (

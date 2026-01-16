@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Application } from '@/types/application';
 import { getApplicationById } from '@/services/applicationService';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 
 export const useApplication = (id: string) => {
   const [application, setApplication] = useState<Application | null>(null);

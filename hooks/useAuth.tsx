@@ -1,13 +1,16 @@
-import { useAuthStore, } from "@/store/authStore";
-import { useEffect } from "react";
-import { authService } from "@/services/authService";
+import { useAuthStore } from "@/store/authStore";
 
+/**
+ * Modern Auth Hook
+ * AuthProvider tarafından manage edilen auth durumunu expose eder
+ */
 export const useAuth = () => {
   const {
     user,
     isLoading,
     error,
     isEmailVerified,
+    isInitialized,
     login,
     register,
     verifyEmail,
@@ -15,29 +18,19 @@ export const useAuth = () => {
     logout,
     requestPasswordReset,
     resetPassword,
-    setUser, // ✅ Yeni eklenen fonksiyon
+    setUser,
   } = useAuthStore();
 
-  useEffect(() => {
-    if (typeof window === "undefined") return; // ✅ SSR hatalarını engelle
-
-    if (!user) {
-      authService.getCurrentUser()
-        .then((fetchedUser) => {
-          if (fetchedUser) setUser(fetchedUser); // ✅ Kullanıcı bilgilerini güncelle
-        })
-        .catch(() => {
-          console.error("Kullanıcı bilgileri alınamadı.");
-        });
-    }
-  }, []);
-
   return {
+    // Auth State
     user,
     isLoading,
     error,
     isEmailVerified,
+    isInitialized,
     isAuthenticated: !!user,
+    
+    // Auth Actions
     login,
     register,
     verifyEmail,
@@ -45,5 +38,8 @@ export const useAuth = () => {
     logout,
     requestPasswordReset,
     resetPassword,
+    
+    // Internal
+    setUser,
   };
 };

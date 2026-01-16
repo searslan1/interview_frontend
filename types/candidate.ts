@@ -79,24 +79,35 @@ export interface CandidateInterviewHistoryItem {
 // RESUME DATA (CV) - YENİ EKLENDİ
 // ==========================================
 
+/**
+ * İş Deneyimi - Backend: { company, position, duration, responsibilities }
+ */
 export interface CandidateExperience {
-  _id?: string; // Backend bazen sub-document ID dönebilir
+  _id?: string;
   company: string;
-  position: string; // veya 'title'
-  startDate: string | Date;
+  position: string; // Backend'de position
+  duration?: string; // Backend'de duration (string format)
+  responsibilities?: string;
+  // Frontend tarafında kullanılan ama backend'de olmayan alanlar (opsiyonel)
+  startDate?: string | Date;
   endDate?: string | Date;
-  isCurrent: boolean;
-  description?: string;
+  isCurrent?: boolean;
+  description?: string; // responsibilities ile aynı
 }
 
+/**
+ * Eğitim Bilgisi - Backend: { school, degree, graduationYear }
+ */
 export interface CandidateEducation {
   _id?: string;
   school: string;
-  department: string;
-  degree?: string; // Lisans, Yüksek Lisans vb.
-  startDate: string | Date;
+  degree: string; // Lisans, Yüksek Lisans vb.
+  graduationYear?: number; // Backend'de number
+  // Frontend tarafında kullanılan ama backend'de olmayan alanlar (opsiyonel)
+  department?: string;
+  startDate?: string | Date;
   endDate?: string | Date;
-  isCurrent: boolean;
+  isCurrent?: boolean;
 }
 
 export interface CandidateSkill {
@@ -111,41 +122,59 @@ export interface CandidateSkill {
 // MAIN MODELS
 // ==========================================
 
+/**
+ * Aday Profili - Backend'den Application üzerinden türetilir
+ * 
+ * Backend'de aday bilgileri application.candidate içinde tutuluyor:
+ * - candidate: { name, surname, email, phone, phoneVerified }
+ * - education: [{ school, degree, graduationYear }]
+ * - experience: [{ company, position, duration, responsibilities }]
+ * - skills: { technical: [], personal: [], languages: [] }
+ * - hrNotes: [{ authorId, authorName, content, createdAt, isPrivate }]
+ * - hrRating: number (1-5)
+ * - favoritedBy: ObjectId[]
+ */
 export interface Candidate {
   _id: string;
-  id?: string;
+  id?: string; // Geriye uyumluluk
+  
+  // Temel Bilgiler (application.candidate'den)
   name: string;
   surname: string;
   fullName: string;
   primaryEmail: string;
+  email?: string; // Geriye uyumluluk
   emailAliases?: EmailAlias[];
   phone?: string;
   
+  // Durum
   status: CandidateStatus;
   isFavorite: boolean;
   favoritedAt?: string;
   
+  // Skorlar (AI analiz sonuçlarından)
   scoreSummary: CandidateScoreSummary;
   
-// ✅ YENİ: CV Verileri (En son başvurudan alınır)
+  // CV Verileri (application'dan direkt)
   experience: CandidateExperience[];
   education: CandidateEducation[];
-  skills: string[] | CandidateSkill[]; // Basit string array veya obje olabilir
-
+  skills: string[] | CandidateSkill[]; // Backend: { technical, personal, languages }
+  
+  // Mülakat Bilgileri
   lastInterviewDate?: string;
   firstInterviewDate?: string;
   lastInterviewTitle?: string;
   
+  // Notlar (application.hrNotes'dan)
   notes?: CandidateNote[];
   notesCount?: number;
   
+  // Timestamps
   createdAt: string;
   updatedAt: string;
   
-  mergedInto?: string;
-  
-  // Frontend uyumluluğu için opsiyonel (bazen UI email diye arayabilir)
-  email?: string; 
+  // Diğer
+  mergedInto?: string; // Gelecekte kullanılabilir
 }
 
 // ==========================================

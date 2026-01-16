@@ -36,16 +36,22 @@ export default function LandingPage() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
+  // ✅ Giriş yapan kullanıcı landing page'i görebilir
+  // Modal'ları otomatik kapat ama redirect yapma
   useEffect(() => {
     if (!isLoading && user) {
       setIsLoginModalOpen(false);
       setIsRegisterModalOpen(false);
-      router.replace("/dashboard");
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading]);
 
   const handleStart = () => {
-    setIsLoginModalOpen(true);
+    // Giriş yapmışsa dashboard'a yönlendir
+    if (user) {
+      router.push("/dashboard");
+    } else {
+      setIsLoginModalOpen(true);
+    }
   };
 
   const handleSwitchToRegister = () => {
@@ -403,10 +409,14 @@ export default function LandingPage() {
                                 <td className="py-3 px-2 font-medium">{row.area}</td>
                                 <td className={`py-3 px-2 ${row.color}`}>{row.observation}</td>
                                 <td className="py-3 px-2">
-                                  <button className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline h-auto p-1"
+                                  >
                                     <Clock className="h-3 w-3" />
                                     {row.time}
-                                  </button>
+                                  </Button>
                                 </td>
                               </tr>
                             ))}

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -10,22 +10,23 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronLeft, ChevronRight, Info, Plus, Video, ChevronRightIcon } from "lucide-react";
-import { useInterviewStore } from "@/store/interviewStore";
-import type { Interview } from "@/types/interview";
+import { ChevronLeft, ChevronRight, Info, Plus, Video, ChevronRightIcon, Users, CheckCircle2, Clock } from "lucide-react";
+import { useDashboardStore } from "@/store/dashboardStore";
+import type { ActiveInterview } from "@/types/dashboard";
 import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function InterviewSlider() {
   const [startIndex, setStartIndex] = useState(0);
   const sliderRef = useRef<HTMLDivElement>(null);
-  const { interviews, fetchInterviews } = useInterviewStore();
+  const { activeInterviews, loading, fetchDashboardData } = useDashboardStore();
 
   useEffect(() => {
-    fetchInterviews();
-  }, [fetchInterviews]);
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   // Maksimum 5 mülakat göster
-  const displayedInterviews = interviews.slice(0, 5);
+  const displayedInterviews = activeInterviews.slice(0, 5);
   const visibleCount = Math.min(3, displayedInterviews.length);
 
   const nextSlide = () => {
@@ -37,19 +38,6 @@ export function InterviewSlider() {
   const prevSlide = () => {
     if (startIndex > 0) {
       setStartIndex((prev) => prev - 1);
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Aktif</Badge>;
-      case "completed":
-        return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Tamamlandı</Badge>;
-      case "draft":
-        return <Badge variant="secondary">Taslak</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
@@ -72,20 +60,27 @@ export function InterviewSlider() {
                 </TooltipContent>
               </Tooltip>
             </div>
-            {interviews.length > 0 && (
+            {activeInterviews.length > 0 && (
               <Link 
                 href="/interviews" 
                 className="text-xs text-primary hover:underline flex items-center gap-1"
               >
-                Tümünü Gör ({interviews.length})
+                Tümünü Gör ({activeInterviews.length})
                 <ChevronRightIcon className="h-3 w-3" />
               </Link>
             )}
           </div>
         </CardHeader>
         <CardContent>
-          {/* Boş durum - aksiyon içeren mesaj */}
-          {interviews.length === 0 ? (
+          {loading ? (
+            <div className="flex gap-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex-1">
+                  <Skeleton className="h-32 w-full" />
+                </div>
+              ))}
+            </div>
+          ) : activeInterviews.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <div className="rounded-full bg-primary/10 p-3 mb-3">
                 <Video className="h-6 w-6 text-primary" />
@@ -108,28 +103,54 @@ export function InterviewSlider() {
                   className="flex transition-transform duration-300 ease-in-out gap-4"
                   style={{ transform: `translateX(-${startIndex * (100 / visibleCount)}%)` }}
                 >
-                  {displayedInterviews.map((interview: Interview) => (
+                  {displayedInterviews.map((interview: ActiveInterview) => (
                     <Link
-                      key={interview._id}
-                      href={`/interviews/${interview._id}`}
+                      key={interview.id}
+                      href={`/interviews/${interview.id}`}
                       className="flex-shrink-0 w-full md:w-[calc(33.333%-1rem)] group"
                     >
                       <Card className="h-full hover:shadow-md transition-shadow border-l-4 border-l-primary/50">
                         <CardContent className="p-4">
-                          <div className="flex justify-between items-start mb-2">
+                          <div className="flex justify-between items-start mb-3">
                             <h3 className="font-medium text-sm group-hover:text-primary transition-colors line-clamp-1">
                               {interview.title}
                             </h3>
-                            {getStatusBadge(interview.status)}
+                            <StatusBadge status={interview.status} size="sm" />
                           </div>
-                          <div className="space-y-1 text-xs text-muted-foreground">
-                            <p>{interview.questions.length} Soru</p>
-                            <p>
-                              Toplam Süre:{" "}
-                              <span className="font-medium">
-                                {interview.questions.reduce((total, q) => total + q.duration, 0)} dk
-                              </span>
-                            </p>
+                          
+                          {/* Başvuru Durumu */}
+                          <div className="space-y-2 text-xs">
+                            <div className="flex items-center justify-between text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Users className="h-3.5 w-3.5" />
+                                <span>Toplam</span>
+                              </div>
+                              <span className="font-medium text-foreground">{interview.totalApplications}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>Bekleyen</span>
+                              </div>
+                              <span className="font-medium text-amber-600">{interview.pendingApplications}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                <span>Tamamlanan</span>
+                              </div>
+                              <span className="font-medium text-green-600">{interview.completedApplications}</span>
+                            </div>
+                            
+                            {/* AI Skoru varsa göster */}
+                            {interview.averageAIScore != null && (
+                              <div className="pt-2 border-t">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-muted-foreground">Ort. AI Skoru</span>
+                                  <span className="font-medium text-primary">%{Math.round(interview.averageAIScore)}</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>

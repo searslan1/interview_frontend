@@ -86,14 +86,24 @@ export default function InterviewsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <main className="container mx-auto px-4 pt-20 pb-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+    <div className="h-full flex flex-col overflow-hidden">
+      <main className="flex-1 overflow-y-auto">
+        <div className="container mx-auto px-4 py-8">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold">Mülakatlar</h1>
-            <Button onClick={() => handleCreateDialogChange(true)}>Yeni Mülakat Oluştur</Button>
-          </div>
+            {/* Page Header */}
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h1 className="text-3xl font-bold text-gradient">Mülakatlar</h1>
+                <p className="text-sm text-muted-foreground mt-1">{interviews.length} mülakat</p>
+              </div>
+              <Button 
+                onClick={() => handleCreateDialogChange(true)}
+                className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 shadow-lg"
+              >
+                Yeni Mülakat Oluştur
+              </Button>
+            </div>
 
           <FilterSection filters={filters} onFilterChange={handleFilterChange} />
 
@@ -125,7 +135,8 @@ export default function InterviewsPage() {
              interview={selectedInterview} 
           />
 
-        </motion.div>
+          </motion.div>
+        </div>
       </main>
     </div>
   );

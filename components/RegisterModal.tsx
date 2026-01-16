@@ -99,13 +99,15 @@ const RegisterModal: React.FC<RegisterModalProps> = ({
                 required
                 minLength={6}
               />
-              <button
+              <Button
                 type="button"
-                className="absolute right-3 top-2 text-gray-500"
+                variant="ghost"
+                size="icon"
+                className="absolute right-3 top-2 text-gray-500 h-6 w-6"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+              </Button>
             </div>
             <Input
               type="text"

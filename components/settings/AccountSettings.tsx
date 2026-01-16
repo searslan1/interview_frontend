@@ -9,8 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 export function AccountSettings() {
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold mb-4">Hesap & Yetkilendirme</h2>
+    <div className="space-y-8 pb-6">
+      <div className="space-y-2">
+        <h2 className="text-2xl font-bold">Hesap & Yetkilendirme</h2>
+        <p className="text-muted-foreground">Kullanıcı yetkileri ve erişim kontrollerini yönetin</p>
+      </div>
 
       <Card>
         <CardHeader>

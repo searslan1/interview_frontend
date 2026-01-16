@@ -1,32 +1,41 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { useAuthStore } from "@/store/authStore";
+import { AUTH_CONFIG, calculateTokenExpiry } from "@/lib/auth.config";
 
 export const api = axios.create({
     baseURL: process.env.NEXT_PUBLIC_APP_URL,
-    withCredentials: true, // ✅ Cookie tabanlı oturum yönetimi için gerekli
+    withCredentials: true, // Cookie tabanlı oturum yönetimi için gerekli
     headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
     },
 });
 
+// Refresh state management
 let isRefreshing = false;
-let failedQueue: any[] = [];
+let failedQueue: Array<{
+    resolve: (value: unknown) => void;
+    reject: (reason?: unknown) => void;
+}> = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: Error | null) => {
     failedQueue.forEach((prom) => {
         if (error) {
             prom.reject(error);
         } else {
-            prom.resolve(token);
+            prom.resolve(undefined);
         }
     });
     failedQueue = [];
 };
 
-// ✅ API isteği öncesinde ek ayarlamalar
+// Request interceptor
 api.interceptors.request.use(
     (config) => {
+        // Activity timestamp güncelle
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(AUTH_CONFIG.STORAGE_KEYS.LAST_ACTIVITY, Date.now().toString());
+        }
         return config;
     },
     (error) => {
@@ -34,37 +43,48 @@ api.interceptors.request.use(
     }
 );
 
-// ✅ API yanıtlarında hata yönetimi
+// Response interceptor - token refresh logic
 api.interceptors.response.use(
     (response) => response,
-    async (error) => {
-        const originalRequest = error.config;
+    async (error: AxiosError) => {
+        const originalRequest = error.config as typeof error.config & { _retry?: boolean };
 
-        // Eğer 401 hatası (Unauthorized) alındıysa ve daha önce denenmediyse
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // 401 hatası ve henüz retry yapılmadıysa
+        if (error.response?.status === 401 && !originalRequest?._retry) {
+            // Refresh endpoint'i ise döngüyü engelle
+            if (originalRequest?.url?.includes('/auth/refresh')) {
+                handleLogout();
+                return Promise.reject(error);
+            }
+
             if (isRefreshing) {
+                // Başka bir refresh devam ediyorsa kuyruğa ekle
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
                 })
                     .then(() => {
-                        return api(originalRequest);
+                        return api(originalRequest!);
                     })
                     .catch((err) => Promise.reject(err));
             }
 
-            originalRequest._retry = true;
+            originalRequest!._retry = true;
             isRefreshing = true;
 
             try {
-                    await api.post('/auth/refresh');
-                    processQueue(null);
-                    return api(originalRequest);
-     // ✅ Yeniden orijinal isteği dene
+                const response = await api.post('/auth/refresh');
+                
+                // Token expiry'yi güncelle
+                if (response.data?.data?.expiresIn && typeof window !== 'undefined') {
+                    const expiry = calculateTokenExpiry(response.data.data.expiresIn);
+                    localStorage.setItem(AUTH_CONFIG.STORAGE_KEYS.TOKEN_EXPIRY, expiry.toString());
+                }
+                
+                processQueue(null);
+                return api(originalRequest!);
             } catch (refreshError) {
-                processQueue(refreshError, null);
-                const { logout } = useAuthStore.getState();
-                logout(); // ✅ Kullanıcıyı çıkış yaptır
-                window.location.href = "/";
+                processQueue(refreshError as Error);
+                handleLogout();
                 return Promise.reject(refreshError);
             } finally {
                 isRefreshing = false;
@@ -74,4 +94,21 @@ api.interceptors.response.use(
         return Promise.reject(error);
     }
 );
- export default api;
+
+/**
+ * Handle logout on auth failure
+ */
+function handleLogout() {
+    if (typeof window !== 'undefined') {
+        // Clear storage
+        localStorage.removeItem(AUTH_CONFIG.STORAGE_KEYS.TOKEN_EXPIRY);
+        localStorage.removeItem(AUTH_CONFIG.STORAGE_KEYS.SESSION_ID);
+        localStorage.removeItem(AUTH_CONFIG.STORAGE_KEYS.LAST_ACTIVITY);
+        
+        // Clear auth store
+        const { logout } = useAuthStore.getState();
+        logout();
+    }
+}
+
+export default api;

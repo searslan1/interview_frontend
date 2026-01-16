@@ -21,6 +21,7 @@ import {
   Pencil, // Düzenleme
   Trash2, // Silme
   FastForward, // Süre Uzatma
+  Eye, // Başvuruları Görüntüle
 } from "lucide-react";
 import type { Interview, InterviewStatus } from "@/types/interview";
 import { useInterviewStore } from "@/store/interviewStore"; // Store import edildi (API çağrısı için)
@@ -154,7 +155,6 @@ export function InterviewCard({ interview, onEdit, onExtendDuration }: Interview
       {/* Ana Kart İçeriği - Detaya Yönlendirme */}
       <div 
         className="p-4"
-        onClick={() => router.push(`/interviews/${interview._id}`)}
       >
         
         {/* Başlık ve Açıklama */}
@@ -188,6 +188,20 @@ export function InterviewCard({ interview, onEdit, onExtendDuration }: Interview
           </Badge>
 
           <div className="flex space-x-2">
+            
+            {/* 👁 BAŞVURULARI GÖR BUTONU */}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                router.push(`/interviews/${interview._id}/applications`); 
+              }}
+              title="Başvuruları Görüntüle"
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              Başvurular
+            </Button>
             
             {/* 🔗 LİNK KOPYALAMA İKONU (Sadece Yayınlanmış/Aktif ise) */}
             {isPublished && (

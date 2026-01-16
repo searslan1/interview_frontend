@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { Menu, X, Play } from "lucide-react"
+import { Menu, X, Play, LayoutDashboard, LogOut } from "lucide-react"
+import { useAuth } from "@/hooks/useAuth"
+import { useRouter } from "next/navigation"
 
 interface LandingPageHeaderProps {
   onStartClick: () => void
@@ -12,6 +14,8 @@ interface LandingPageHeaderProps {
 const LandingPageHeader: React.FC<LandingPageHeaderProps> = ({ onStartClick }) => {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { user, logout } = useAuth()
+  const router = useRouter()
 
   // Scroll event listener'ını optimize et
   const handleScroll = useCallback(() => {
@@ -96,15 +100,38 @@ const LandingPageHeader: React.FC<LandingPageHeaderProps> = ({ onStartClick }) =
             </nav>
 
             {/* CTA - Sağ (Desktop) */}
-            <div className="hidden md:block">
-              <Button
-                onClick={onStartClick}
-                size="sm"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
-              >
-                <Play className="h-4 w-4" />
-                Hemen Dene
-              </Button>
+            <div className="hidden md:flex items-center gap-3">
+              {user ? (
+                <>
+                  <Button
+                    onClick={() => router.push("/dashboard")}
+                    size="sm"
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    Dashboard
+                  </Button>
+                  <Button
+                    onClick={() => logout()}
+                    size="sm"
+                    variant="ghost"
+                    className="gap-2"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Çıkış
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={onStartClick}
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+                >
+                  <Play className="h-4 w-4" />
+                  Hemen Dene
+                </Button>
+              )}
             </div>
 
             {/* Mobil Menü Toggle */}
@@ -166,20 +193,53 @@ const LandingPageHeader: React.FC<LandingPageHeaderProps> = ({ onStartClick }) =
                 </ul>
                 
                 <div className="mt-6 pt-6 border-t">
-                  <Button
-                    onClick={() => {
-                      setIsMobileMenuOpen(false)
-                      onStartClick()
-                    }}
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
-                    size="lg"
-                  >
-                    <Play className="h-5 w-5" />
-                    Hemen Dene
-                  </Button>
-                  <p className="text-xs text-muted-foreground text-center mt-3">
-                    3 soruluk ücretsiz demo
-                  </p>
+                  {user ? (
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => {
+                          setIsMobileMenuOpen(false)
+                          router.push("/dashboard")
+                        }}
+                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+                        size="lg"
+                      >
+                        <LayoutDashboard className="h-5 w-5" />
+                        Dashboard'a Git
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setIsMobileMenuOpen(false)
+                          logout()
+                        }}
+                        variant="outline"
+                        className="w-full gap-2"
+                        size="lg"
+                      >
+                        <LogOut className="h-5 w-5" />
+                        Çıkış Yap
+                      </Button>
+                      <p className="text-xs text-muted-foreground text-center">
+                        Hoş geldin, {user.email}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => {
+                          setIsMobileMenuOpen(false)
+                          onStartClick()
+                        }}
+                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+                        size="lg"
+                      >
+                        <Play className="h-5 w-5" />
+                        Hemen Dene
+                      </Button>
+                      <p className="text-xs text-muted-foreground text-center mt-3">
+                        3 soruluk ücretsiz demo
+                      </p>
+                    </>
+                  )}
                 </div>
               </nav>
             </motion.div>

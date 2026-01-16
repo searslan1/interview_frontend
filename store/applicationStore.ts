@@ -11,8 +11,32 @@ import {
   getApplications,
   getApplicationsByInterviewId,
   getApplicationById,
-  updateApplicationStatus 
+  updateApplicationStatus,
+  addHRNote,
+  updateHRNote,
+  deleteHRNote,
+  updateHRRating,
+  toggleFavorite
 } from '@/services/applicationService';
+
+// ========================================
+// CONSTANTS
+// ========================================
+
+const DEFAULT_LIMIT = 10;
+
+const DEFAULT_FILTERS: ApplicationFilterState = {
+  interviewId: undefined,
+  status: 'all',
+  analysisStatus: 'all',
+  query: '',
+  aiScoreMin: 0,
+};
+
+const DEFAULT_SORT: ApplicationSortState = {
+  sortBy: 'createdAt',
+  sortOrder: 'desc',
+};
 
 // ========================================
 // STORE STATE INTERFACE
@@ -38,7 +62,7 @@ interface ApplicationStore {
   sort: ApplicationSortState;
   
   // Actions
-  fetchApplications: (options?: { reset?: boolean }) => Promise<void>;
+  fetchApplications: (options?: { reset?: boolean; [key: string]: any }) => Promise<void>;
   fetchNextPage: () => Promise<void>;
   setFilters: (newFilters: Partial<ApplicationFilterState>) => void;
   setSort: (newSort: Partial<ApplicationSortState>) => void;
@@ -46,45 +70,31 @@ interface ApplicationStore {
   
   // Single Application Actions
   fetchApplication: (id: string) => Promise<void>;
-  updateStatus: (id: string, newStatus: 'pending' | 'rejected' | 'accepted') => Promise<void>;
+  updateStatus: (id: string, newStatus: 'pending' | 'rejected' | 'accepted' | 'completed' | 'archived') => Promise<void>;
   clearApplication: () => void;
   
-  // Interview-specific (Mülakat detay sayfası için)
+  // HR Notes Actions
+  addNote: (applicationId: string, content: string, isPrivate?: boolean) => Promise<void>;
+  updateNote: (applicationId: string, noteId: string, updates: { content?: string; isPrivate?: boolean }) => Promise<void>;
+  deleteNote: (applicationId: string, noteId: string) => Promise<void>;
+  
+  // HR Rating Action
+  updateRating: (applicationId: string, rating: number) => Promise<void>;
+  
+  // Favorite Action
+  toggleFavoriteAction: (applicationId: string, isFavorite: boolean) => Promise<void>;
+  
+  // Interview-specific
   getApplicationsByInterviewId: (interviewId: string) => Promise<void>;
   
-  // ========================================
-  // LEGACY COMPATIBILITY (Geriye Dönük Uyumluluk)
-  // ========================================
-  
-  /** @deprecated Use 'items' instead */
+  // Legacy compatibility
   applications: Application[];
-  
-  /** @deprecated Use page, limit, total, hasMore instead */
   pagination: {
     total: number;
     page: number;
     limit: number;
   };
 }
-
-// ========================================
-// DEFAULT VALUES
-// ========================================
-
-const DEFAULT_FILTERS: ApplicationFilterState = {
-  interviewId: undefined,
-  status: 'all',
-  analysisStatus: 'all',
-  query: '',
-  aiScoreMin: 0,
-};
-
-const DEFAULT_SORT: ApplicationSortState = {
-  sortBy: 'createdAt',
-  sortOrder: 'desc',
-};
-
-const DEFAULT_LIMIT = 10;
 
 // ========================================
 // STORE IMPLEMENTATION
@@ -112,13 +122,11 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
 
   /**
    * Ana fetch fonksiyonu
-   * @param options.reset - true ise page=1 ve items reset edilir
    */
-  fetchApplications: async (options = {}) => {
-    const { reset = false } = options;
+  fetchApplications: async (options: { reset?: boolean; [key: string]: any } = {}) => {
+    const { reset = false, ...customFilters } = options;
     const state = get();
     
-    // Zaten yükleniyorsa çık
     if (state.loading) return;
     
     set({ loading: true, error: null });
@@ -128,14 +136,14 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     try {
       const response = await getApplications({
         page: targetPage,
-        limit: state.limit,
-        interviewId: state.filters.interviewId,
-        status: state.filters.status,
-        analysisStatus: state.filters.analysisStatus,
-        query: state.filters.query,
-        aiScoreMin: state.filters.aiScoreMin,
-        sortBy: state.sort.sortBy,
-        sortOrder: state.sort.sortOrder,
+        limit: customFilters.limit || state.limit,
+        interviewId: customFilters.interviewId || state.filters.interviewId,
+        status: customFilters.status || state.filters.status,
+        analysisStatus: customFilters.analysisStatus || state.filters.analysisStatus,
+        query: customFilters.query || state.filters.query,
+        aiScoreMin: customFilters.aiScoreMin || state.filters.aiScoreMin,
+        sortBy: customFilters.sortBy || state.sort.sortBy,
+        sortOrder: customFilters.sortOrder || state.sort.sortOrder,
       });
       
       const newItems = reset 
@@ -160,48 +168,33 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     }
   },
 
-  /**
-   * Sonraki sayfayı yükle (infinite scroll için)
-   * ÖNEMLI: Sadece hasMore && !loading iken çağrılmalı
-   */
   fetchNextPage: async () => {
     const state = get();
     
-    // Guard: hasMore yoksa veya yükleniyorsa çık
     if (!state.hasMore || state.loading) {
       return;
     }
     
-    // Sayfa numarasını artır ve fetch et
     set({ page: state.page + 1 });
     await get().fetchApplications();
   },
 
-  /**
-   * Filtreleri güncelle ve listeyi sıfırla
-   */
   setFilters: (newFilters) => {
     set((state) => ({
       filters: { ...state.filters, ...newFilters },
-      page: 1, // Filtre değişince sayfa 1'e dön
+      page: 1,
     }));
     get().fetchApplications({ reset: true });
   },
 
-  /**
-   * Sıralamayı güncelle ve listeyi sıfırla
-   */
   setSort: (newSort) => {
     set((state) => ({
       sort: { ...state.sort, ...newSort },
-      page: 1, // Sort değişince sayfa 1'e dön
+      page: 1,
     }));
     get().fetchApplications({ reset: true });
   },
 
-  /**
-   * Filtreleri varsayılana sıfırla
-   */
   resetFilters: () => {
     set({
       filters: { ...DEFAULT_FILTERS },
@@ -211,14 +204,12 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     get().fetchApplications({ reset: true });
   },
 
-  /**
-   * Tek başvuruyu ID ile getir (detay sayfası için)
-   */
   fetchApplication: async (id: string) => {
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, application: null });
+    
     try {
-      const app = await getApplicationById(id); // ✅ Doğru servis çağrısı
-      set({ application: app, loading: false });
+      const application = await getApplicationById(id);
+      set({ application, loading: false });
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Başvuru getirilirken hata oluştu.',
@@ -227,79 +218,143 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     }
   },
 
-  /**
-   * Başvuru durumunu güncelle (Kabul/Red/Beklemede)
-   */
   updateStatus: async (id, newStatus) => {
-    set({ loading: true, error: null });
     try {
-      const updatedApp = await updateApplicationStatus(id, newStatus);
+      await updateApplicationStatus(id, newStatus);
       
       set((state) => ({
-        // Tekli görünüm güncellenir
-        application: state.application?._id === id ? updatedApp : state.application,
-        // Liste görünümü güncellenir
-        items: state.items.map(app => 
-          app._id === id ? updatedApp : app
+        items: state.items.map(app =>
+          app._id === id ? { ...app, status: newStatus } : app
         ),
-        loading: false,
+        application: state.application?._id === id
+          ? { ...state.application, status: newStatus }
+          : state.application,
       }));
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Durum güncellenirken hata oluştu.',
-        loading: false,
       });
     }
   },
 
-  /**
-   * Başvuru state'ini temizle
-   */
-  clearApplication: () => {
-    set({ application: null, error: null });
+  addNote: async (applicationId, content, isPrivate = false) => {
+    try {
+      const updatedApp = await addHRNote(applicationId, content, isPrivate);
+      
+      set((state) => ({
+        items: state.items.map(app =>
+          app._id === applicationId ? updatedApp : app
+        ),
+        application: state.application?._id === applicationId
+          ? updatedApp
+          : state.application,
+      }));
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Not eklenirken hata oluştu.',
+      });
+    }
   },
 
-  /**
-   * Mülakat ID'sine göre başvuruları getir (Mülakat Detay Sayfası için)
-   */
+  updateNote: async (applicationId, noteId, updates) => {
+    try {
+      const updatedApp = await updateHRNote(applicationId, noteId, updates);
+      
+      set((state) => ({
+        items: state.items.map(app =>
+          app._id === applicationId ? updatedApp : app
+        ),
+        application: state.application?._id === applicationId
+          ? updatedApp
+          : state.application,
+      }));
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Not güncellenirken hata oluştu.',
+      });
+    }
+  },
+
+  deleteNote: async (applicationId, noteId) => {
+    try {
+      const updatedApp = await deleteHRNote(applicationId, noteId);
+      
+      set((state) => ({
+        items: state.items.map(app =>
+          app._id === applicationId ? updatedApp : app
+        ),
+        application: state.application?._id === applicationId
+          ? updatedApp
+          : state.application,
+      }));
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Not silinirken hata oluştu.',
+      });
+    }
+  },
+
+  updateRating: async (applicationId, rating) => {
+    try {
+      await updateHRRating(applicationId, rating);
+      
+      set((state) => ({
+        items: state.items.map(app =>
+          app._id === applicationId
+            ? { ...app, hrRating: rating }
+            : app
+        ),
+        application: state.application?._id === applicationId
+          ? { ...state.application, hrRating: rating }
+          : state.application,
+      }));
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Rating güncellenirken hata oluştu.',
+      });
+    }
+  },
+
+  toggleFavoriteAction: async (applicationId, isFavorite) => {
+    try {
+      await toggleFavorite(applicationId, isFavorite ? 'add' : 'remove');
+      
+      set((state) => ({
+        items: state.items.map(app =>
+          app._id === applicationId
+            ? { ...app, isFavorite }
+            : app
+        ),
+        application: state.application?._id === applicationId
+          ? { ...state.application, isFavorite }
+          : state.application,
+      }));
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Favori durumu güncellenirken hata oluştu.',
+      });
+    }
+  },
+
+  clearApplication: () => {
+    set({ application: null });
+  },
+
   getApplicationsByInterviewId: async (interviewId: string) => {
     set({ loading: true, error: null });
+    
     try {
-      const response: any = await getApplicationsByInterviewId(interviewId);
+      const response = await getApplicationsByInterviewId(interviewId);
       
-      console.log("🔍 STORE GELEN HAM VERİ:", response);
-      // ✅ DÜZELTME: response.data diyerek array'e erişiyoruz
-      // Backend yapına göre response.data veya response.data.data olabilir. 
-      // Eğer service response.data dönüyorsa, burada response.data kullanmalısın.
-      // Paylaştığın JSON'a göre array "data" key'inin içinde.
-      let applicationsArray: any[] = [];
-      let metaData: any = {};
-
-      if (Array.isArray(response)) {
-          // 1. Direkt Array geldiyse
-          applicationsArray = response;
-      } else if (response.data && Array.isArray(response.data)) {
-          // 2. { success: true, data: [...] } formatı (Service response.data dönüyorsa)
-          applicationsArray = response.data;
-          metaData = response.meta;
-      } else if (response.data?.data && Array.isArray(response.data.data)) {
-           // 3. Axios Objesi formatı { data: { success: true, data: [...] } }
-           applicationsArray = response.data.data;
-           metaData = response.data.meta;
-      }
-
-      console.log("✅ PARSE EDİLEN LİSTE:", applicationsArray);
-
-
+      // Response zaten PaginatedApplicationResponse tipinde
       set({ 
-        items: applicationsArray,
-        total: metaData?.total || applicationsArray.length,
+        items: response.data,
+        total: response.meta.total,
         hasMore: false,
         page: 1,
         loading: false,
       });
     } catch (error: any) {
-      console.error("Store Error:", error); // Debug için log ekledik
       set({
         error: error.response?.data?.message || 'Mülakat başvuruları getirilirken hata oluştu.',
         loading: false,
@@ -308,5 +363,4 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
   },
 }));
 
-// Default export for backward compatibility
 export default useApplicationStore;

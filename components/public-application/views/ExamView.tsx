@@ -18,7 +18,7 @@ import {
   ChevronRight,
   Loader2
 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import axios from "axios";
 
 // --- MAIN COMPONENT ---
@@ -183,7 +183,18 @@ function ActiveExamSession() {
 
     // 1. Blob Oluştur
     const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-    const questionId = (currentQuestion as any)._id || `q-${currentQuestionIndex}`; // ID yoksa index fallback
+    const questionId = currentQuestion._id; // MongoDB ObjectId (migration ile eklendi)
+    
+    if (!questionId) {
+      console.error('Question ID bulunamadı! Mülakat verisi eski olabilir.');
+      toast({ 
+        title: "Hata", 
+        description: "Soru ID'si bulunamadı. Sayfayı yenileyip tekrar deneyin.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
     const duration = currentQuestion.duration - timeLeft;
 
     // 2. Queue'ya Ekle (Store)
@@ -215,17 +226,20 @@ function ActiveExamSession() {
    */
   const uploadVideoInBackground = async (qId: string, blob: Blob, duration: number) => {
      // A. Upload URL Al
-     const { uploadUrl, videoKey } = await publicApplicationService.getVideoUploadUrl(qId, 'video/webm');
+     const { uploadUrl } = await publicApplicationService.getVideoUploadUrl(qId, 'video/webm');
 
      // B. S3'e PUT
      await axios.put(uploadUrl, blob, {
         headers: { 'Content-Type': 'video/webm' }
      });
 
-     // C. Backend'e Bildir
+     // C. Full S3 URL oluştur (presigned query params'ı kaldır)
+     const fullVideoUrl = uploadUrl.split('?')[0];
+
+     // D. Backend'e Bildir
      await publicApplicationService.submitVideoResponse({
         questionId: qId,
-        videoUrl: videoKey, // Backend key bekliyor (serviste url'e çeviriyor olabilir, backend logic'e göre key)
+        videoUrl: fullVideoUrl,
         duration: duration
      });
   };

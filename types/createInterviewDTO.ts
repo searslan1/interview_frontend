@@ -1,15 +1,7 @@
 import * as z from "zod";
 import { InterviewStatus } from "./interview";
 
-// ✅ Mülakat Tipi
-export const InterviewType = {
-  ASYNC_VIDEO: "async-video",
-  LIVE_VIDEO: "live-video",
-  AUDIO_ONLY: "audio-only",
-  TEXT_BASED: "text-based",
-} as const;
-
-export type InterviewTypeValue = typeof InterviewType[keyof typeof InterviewType];
+// Mülakat tipi kaldırıldı - kullanılmıyor
 
 // ✅ Pozisyon Bilgileri Şeması
 export const positionSchema = z.object({
@@ -62,10 +54,6 @@ export const createInterviewSchema = z.object({
   description: z.string().optional().or(z.literal("")),
   // Zod string bekler, backend'e gönderirken Date objesine çevrilir veya ISO string gider
   expirationDate: z.string().or(z.date()), 
-
-  // Mülakat Tipi
-  type: z.enum(["async-video", "live-video", "audio-only", "text-based"])
-    .default("async-video"),
 
   // Pozisyon Bilgileri
   position: positionSchema.optional(),

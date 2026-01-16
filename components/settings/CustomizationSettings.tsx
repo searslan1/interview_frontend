@@ -10,8 +10,11 @@ export function CustomizationSettings() {
   const { theme, setTheme } = useTheme()
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold mb-4">Kişiselleştirme</h2>
+    <div className="space-y-8 pb-6">
+      <div className="space-y-2">
+        <h2 className="text-2xl font-bold">Kişiselleştirme</h2>
+        <p className="text-muted-foreground">Arayüz temanızı ve görünüm tercihlerinizi özelleştirin</p>
+      </div>
 
       <Card>
         <CardHeader>

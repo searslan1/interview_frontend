@@ -109,15 +109,39 @@ export interface SupportRequest {
   message: string;
 }
 
+/**
+ * ✅ YENİ: HR Note Interface (Backend Model ile uyumlu)
+ */
+export interface HRNote {
+  _id: string;
+  userId: string;
+  userName: string;
+  content: string;
+  isPrivate: boolean;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+/**
+ * ✅ YENİ: HR Review Interface (Backend Model ile uyumlu)
+ */
+export interface HRReview {
+  reviewedBy?: string;
+  reviewedAt?: Date;
+  rating?: number; // 1-5
+}
+
 // ✅ GÜNCELLENDİ: Backend Model'deki tüm durumları yansıtacak şekilde genişletildi
 export type ApplicationStatus = 
   | 'pending'
+  | 'otp_verified'
   | 'in_progress'
   | 'completed'
   | 'rejected'
   | 'accepted'
-  | 'awaiting_video_responses' // Yeni
-  | 'awaiting_ai_analysis';     // Yeni
+  | 'awaiting_video_responses'
+  | 'awaiting_ai_analysis'
+  | 'archived';  // ✅ YENİ: Arşivlenmiş başvurular
 
   // ✅ YENİ: UI Durumları (Backend Controller hesaplayıp dönüyor)
 export type VideoStatus = 'has_video' | 'no_video';
@@ -151,6 +175,13 @@ export interface Application {
   maxRetryAttempts?: number;
   retryCount?: number;
   supportRequests: SupportRequest[];
+  
+  // ✅ YENİ: HR Notes ve Rating alanları
+  hrNotes?: HRNote[];
+  hrReview?: HRReview;
+  favoriteBy?: string[]; // User ID'leri (backend'den gelen array)
+  isFavorite?: boolean;   // Frontend için hesaplanan değer
+  
   createdAt: string;
   updatedAt: string;
 }

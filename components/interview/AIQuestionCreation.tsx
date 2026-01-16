@@ -145,46 +145,48 @@ export function AIQuestionCreation({ form }: AIQuestionCreationProps) {
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId="questions">
             {(provided) => (
-              <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
+              <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
                 {questions.map((question: any, index: number) => (
                   <Draggable key={index} draggableId={`question-${index}`} index={index}>
                     {(provided, snapshot) => (
                       <div
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        className={`border rounded-lg bg-card transition-colors ${snapshot.isDragging ? "shadow-lg ring-2 ring-primary/20" : "shadow-sm"}`}
+                        className={`border rounded-lg bg-card transition-colors ${
+                          snapshot.isDragging ? "shadow-lg ring-2 ring-primary/20" : "shadow-sm"
+                        }`}
                       >
-                        <div className="flex items-start p-4 gap-4">
+                        <div className="flex items-start p-3 gap-3">
                             {/* Sürükleme Tutamacı */}
-                            <div {...provided.dragHandleProps} className="mt-2 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing">
-                                <GripVertical className="h-5 w-5" />
+                            <div {...provided.dragHandleProps} className="mt-2 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing shrink-0">
+                                <GripVertical className="h-4 w-4" />
                             </div>
 
                             {/* Soru Form İçeriği */}
-                            <div className="flex-1 space-y-4">
-                                <div className="flex justify-between items-start">
-                                    <div className="space-y-1 flex-1 mr-4">
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="outline" className="w-fit">Soru {index + 1}</Badge>
-                                            <span className="text-xs text-muted-foreground">Sıra: {question.order}</span>
+                            <div className="flex-1 space-y-3 min-w-0">
+                                <div className="flex justify-between items-start gap-2">
+                                    <div className="space-y-1 flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <Badge variant="outline" className="w-fit text-xs">Soru {index + 1}</Badge>
+                                            <span className="text-xs text-muted-foreground whitespace-nowrap">Sıra: {question.order}</span>
                                         </div>
                                         <Textarea
                                             value={question.questionText}
                                             onChange={(e) => updateQuestionField(index, 'questionText', e.target.value)}
                                             placeholder="Soru metnini buraya girin..."
-                                            className="min-h-[60px] text-base font-medium resize-none focus-visible:ring-0 border-0 border-b rounded-none px-0 shadow-none"
+                                            className="min-h-[50px] text-sm font-medium resize-none focus-visible:ring-0 border-0 border-b rounded-none px-0 shadow-none"
                                         />
                                     </div>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/90 hover:bg-destructive/10" onClick={() => removeQuestion(index)}>
-                                        <Trash2 className="h-4 w-4" />
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/90 hover:bg-destructive/10 shrink-0 h-8 w-8" onClick={() => removeQuestion(index)}>
+                                        <Trash2 className="h-3 w-3" />
                                     </Button>
                                 </div>
 
                                 {/* Detay Alanları (Grid) */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-muted/20 p-4 rounded-md">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-muted/20 p-3 rounded-md">
                                     
                                     {/* 1. Süre */}
-                                    <div>
+                                    <div className="space-y-1">
                                         <Label className="text-xs text-muted-foreground">Süre (sn)</Label>
                                         <Input
                                             type="number"
@@ -192,26 +194,26 @@ export function AIQuestionCreation({ form }: AIQuestionCreationProps) {
                                             max="300"
                                             value={question.duration}
                                             onChange={(e) => updateQuestionField(index, 'duration', Number(e.target.value))}
-                                            className="h-8 bg-background mt-1"
+                                            className="h-7 bg-background text-xs"
                                         />
                                     </div>
 
                                     {/* 2. Zorluk Seviyesi - ✅ GÜNCELLENDİ (5 Seviye) */}
-                                    <div>
+                                    <div className="space-y-1">
                                         <Label className="text-xs text-muted-foreground">Zorluk Seviyesi</Label>
                                         <Select
                                             value={question.aiMetadata.complexityLevel}
                                             onValueChange={(value) => updateAiMetadataField(index, 'complexityLevel', value)}
                                         >
-                                            <SelectTrigger className="h-8 bg-background mt-1">
+                                            <SelectTrigger className="h-7 bg-background text-xs">
                                                 <SelectValue placeholder="Seç" />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="low">Düşük</SelectItem>
                                                 <SelectItem value="medium">Orta</SelectItem>
                                                 <SelectItem value="high">Yüksek</SelectItem>
-                                                <SelectItem value="intermediate">Orta-Üst (Intermediate)</SelectItem>
-                                                <SelectItem value="advanced">İleri (Advanced)</SelectItem>
+                                                <SelectItem value="intermediate">Orta-Üst</SelectItem>
+                                                <SelectItem value="advanced">İleri</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -238,17 +240,17 @@ export function AIQuestionCreation({ form }: AIQuestionCreationProps) {
                                 </div>
 
                                 {/* Beklenen Cevap ve Keywords */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                    <div className="space-y-1">
                                         <Label className="text-xs">Beklenen Cevap (AI Değerlendirme Referansı)</Label>
                                         <Textarea
                                             value={question.expectedAnswer}
                                             onChange={(e) => updateQuestionField(index, 'expectedAnswer', e.target.value)}
                                             placeholder="Adaydan beklenen ideal cevabı özetleyin..."
-                                            className="mt-1 h-20 text-sm"
+                                            className="h-16 text-xs resize-none"
                                         />
                                     </div>
-                                    <div>
+                                    <div className="space-y-1">
                                         <Label className="text-xs">Anahtar Kelimeler</Label>
                                         <Textarea
                                             value={question.keywords.join(", ")}
@@ -261,9 +263,9 @@ export function AIQuestionCreation({ form }: AIQuestionCreationProps) {
                                                  updateQuestionField(index, 'keywords', keywords);
                                             }}
                                             placeholder="Yönetim, Bütçe, Takım Çalışması..."
-                                            className="mt-1 h-20 text-sm"
+                                            className="h-16 text-xs resize-none"
                                         />
-                                        <p className="text-[10px] text-muted-foreground mt-1 text-right">Virgülle ayırın</p>
+                                        <p className="text-[10px] text-muted-foreground text-right">Virgülle ayırın</p>
                                     </div>
                                 </div>
                             </div>

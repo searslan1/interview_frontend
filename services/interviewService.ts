@@ -198,4 +198,41 @@ export const interviewService = {
     const response = await api.patch(`/interviews/${id}/link`, payload);
     return response.data.data; 
   },
+
+  /**
+   * Mülakata ait başvuruları getir
+   */
+  async getInterviewApplications(
+    interviewId: string,
+    params?: {
+      page?: number;
+      limit?: number;
+      status?: string;
+      sortBy?: string;
+      sortOrder?: string;
+    }
+  ): Promise<{
+    data: any[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+      interviewTitle: string;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params?.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+    
+    const queryString = queryParams.toString();
+    const url = `/interviews/${interviewId}/applications${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await api.get(url);
+    return response.data;
+  },
 };

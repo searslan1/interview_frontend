@@ -48,8 +48,11 @@ export function GeneralSettings() {
   };
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold mb-4">Genel Ayarlar</h2>
+    <div className="space-y-8 pb-6">
+      <div className="space-y-2">
+        <h2 className="text-2xl font-bold">Genel Ayarlar</h2>
+        <p className="text-muted-foreground">Profil bilgilerinizi ve genel ayarlarınızı yönetin</p>
+      </div>
 
       <Card className="mb-6">
         <CardHeader>

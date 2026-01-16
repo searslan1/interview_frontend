@@ -12,7 +12,6 @@ import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import useApplicationStore from "@/store/applicationStore";
-import { useFavoriteCandidatesStore } from "@/store/favorite-candidates-store";
 
 interface ApplicationPreviewDialogProps {
   applicationId: string;
@@ -21,8 +20,7 @@ interface ApplicationPreviewDialogProps {
 }
 
 export function ApplicationPreviewDialog({ applicationId, open, onOpenChange }: ApplicationPreviewDialogProps) {
-  const { application, fetchApplication } = useApplicationStore();
-  const { addFavorite, removeFavorite, isFavorite } = useFavoriteCandidatesStore();
+  const { application, fetchApplication, toggleFavoriteAction } = useApplicationStore();
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -34,18 +32,10 @@ export function ApplicationPreviewDialog({ applicationId, open, onOpenChange }: 
 
   if (!application) return null;
 
+  // ✅ Backend entegreli favori toggle
   const toggleFavorite = () => {
     if (application) {
-      if (isFavorite(application._id)) {
-        removeFavorite(application._id);
-      } else {
-        addFavorite({
-          id: application._id,
-          name: application.candidate.name,
-          position: "Aday", // Pozisyon backend'de yoksa statik bir değer
-          score: application.generalAIAnalysis?.overallScore ?? 0,
-        });
-      }
+      toggleFavoriteAction(application._id, !application.isFavorite);
     }
   };
 
@@ -65,9 +55,9 @@ export function ApplicationPreviewDialog({ applicationId, open, onOpenChange }: 
                   variant="ghost"
                   size="icon"
                   onClick={toggleFavorite}
-                  className={`text-white ${isFavorite(application._id) ? "text-yellow-400" : ""}`}
+                  className={`text-white ${application.isFavorite ? "text-yellow-400" : ""}`}
                 >
-                  <Star className="h-6 w-6" />
+                  <Star className={`h-6 w-6 ${application.isFavorite ? "fill-yellow-400" : ""}`} />
                 </Button>
                 <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="text-white">
                   <X className="h-6 w-6" />

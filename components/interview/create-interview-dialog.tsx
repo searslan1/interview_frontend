@@ -5,7 +5,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { Settings, MessageSquare, Brain, Eye } from "lucide-react";
 import { InterviewGeneralInfo } from "./InterviewGeneralInfo";
 import { AIQuestionCreation } from "./AIQuestionCreation";
 import { EvaluationSettings } from "./EvaluationSettings";
@@ -39,7 +41,6 @@ export function CreateInterviewDialog({ open, onOpenChange, interviewToEdit }: C
       title: "",
       description: "",
       expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      type: "async-video",
       position: {
         title: "",
         department: "",
@@ -81,7 +82,6 @@ export function CreateInterviewDialog({ open, onOpenChange, interviewToEdit }: C
         expirationDate: interviewToEdit.expirationDate 
           ? new Date(interviewToEdit.expirationDate).toISOString() 
           : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        type: interviewToEdit.type || "async-video",
         position: {
           title: interviewToEdit.position?.title || "",
           department: interviewToEdit.position?.department || "",
@@ -113,7 +113,6 @@ export function CreateInterviewDialog({ open, onOpenChange, interviewToEdit }: C
         title: "",
         description: "",
         expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        type: "async-video",
         position: {
           title: "",
           department: "",
@@ -177,46 +176,58 @@ export function CreateInterviewDialog({ open, onOpenChange, interviewToEdit }: C
  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] h-[90vh] flex flex-col overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="max-w-7xl w-[95vw] p-0 h-[90vh] max-h-[900px] flex flex-col overflow-hidden">
+        <DialogHeader className="p-6 pb-4 border-b shrink-0">
           <DialogTitle className="text-2xl font-bold">
             {isEditing ? "Mülakatı Düzenle" : "Yeni Mülakat Oluştur"}
           </DialogTitle>
         </DialogHeader>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
-          <TabsList className="mb-4">
-            <TabsTrigger value="general">Genel Bilgiler</TabsTrigger>
-            <TabsTrigger value="questions">Sorular</TabsTrigger>
-            <TabsTrigger value="evaluation">Değerlendirme</TabsTrigger>
-            <TabsTrigger value="preview">Önizleme</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
+          {/* Sol Sidebar */}
+          <TabsList className="flex flex-row md:flex-col items-stretch justify-start space-x-1 md:space-x-0 md:space-y-1 rounded-none border-b md:border-b-0 md:border-r bg-muted/50 p-2 w-full md:w-64 shrink-0 overflow-x-auto md:overflow-x-visible">
+            <TabsTrigger value="general" className="justify-start gap-2 whitespace-nowrap">
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Genel Bilgiler</span>
+            </TabsTrigger>
+            <TabsTrigger value="questions" className="justify-start gap-2 whitespace-nowrap">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Sorular</span>
+            </TabsTrigger>
+            <TabsTrigger value="evaluation" className="justify-start gap-2 whitespace-nowrap">
+              <Brain className="h-4 w-4" />
+              <span className="hidden sm:inline">AI & Değerlendirme</span>
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="justify-start gap-2 whitespace-nowrap">
+              <Eye className="h-4 w-4" />
+              <span className="hidden sm:inline">Önizleme</span>
+            </TabsTrigger>
           </TabsList>
-          
-          <div className="flex-grow overflow-auto px-4 pb-4">
-            <TabsContent value="general">
-              {/* Form prop'u child component'e iletiliyor, bu doğru */}
-              <InterviewGeneralInfo form={form} />
-            </TabsContent>
-            
-            <TabsContent value="questions">
-              <AIQuestionCreation form={form} />
-            </TabsContent>
-            
-            <TabsContent value="evaluation">
-              {/* Burası AI Ayarlarını içermeli */}
-              <EvaluationSettings form={form} />
-            </TabsContent>
-            
-            <TabsContent value="publish">
-              <PublishSettings form={form} />
-            </TabsContent>
-            
-            <TabsContent value="preview">
-              <InterviewPreview form={form} />
-            </TabsContent>
+
+          {/* Sağ İçerik Alanı */}
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <ScrollArea className="flex-1 h-full">
+              <div className="p-4 md:p-6 space-y-6 min-h-full pb-8">
+                <TabsContent value="general" className="mt-0 min-h-0">
+                  <InterviewGeneralInfo form={form} />
+                </TabsContent>
+                
+                <TabsContent value="questions" className="mt-0 min-h-0">
+                  <AIQuestionCreation form={form} />
+                </TabsContent>
+                
+                <TabsContent value="evaluation" className="mt-0 min-h-0">
+                  <EvaluationSettings form={form} />
+                </TabsContent>
+                
+                <TabsContent value="preview" className="mt-0 min-h-0">
+                  <InterviewPreview form={form} />
+                </TabsContent>
+              </div>
+            </ScrollArea>
           </div>
         </Tabs>
         
-        <div className="flex justify-between space-x-2 mt-4 pt-4 border-t">
+        <div className="flex justify-between items-center space-x-2 p-6 pt-4 border-t bg-muted/30 shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             İptal
           </Button>
